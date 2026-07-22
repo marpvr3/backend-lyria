@@ -23,7 +23,7 @@ internal sealed class FakeEstablishmentCategoryRepository : IEstablishmentCatego
         CancellationToken cancellationToken)
     {
         bool exists = _categories.Any(c =>
-            c.Name == normalizedName &&
+            string.Equals(c.Name, normalizedName, StringComparison.OrdinalIgnoreCase) &&
             (excludingId is null || c.Id != excludingId.Value));
         return Task.FromResult(exists);
     }

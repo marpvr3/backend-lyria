@@ -86,6 +86,21 @@ public sealed class CreateEstablishmentCategoryTests
     }
 
     [Fact]
+    public async Task Handle_WhenNameExistsWithDifferentCasing_ReturnsConflict()
+    {
+        _repository.Seed(EstablishmentCategory.Create(
+            EstablishmentCategoryId.New(), "Restaurante", null, null, 0));
+
+        var command = new CreateEstablishmentCategoryCommand("RESTAURANTE", null, null, 0);
+
+        Result<EstablishmentCategoryId> result = await _handler.Handle(command, CancellationToken.None);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ErrorType.Conflict, result.Error.Type);
+        Assert.Equal("EstablishmentCategories.NameAlreadyExists", result.Error.Code);
+    }
+
+    [Fact]
     public async Task Handle_RespectsCancellationToken()
     {
         using var cts = new CancellationTokenSource();
