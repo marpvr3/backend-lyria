@@ -22,11 +22,13 @@ public class EstablishmentCategoriesControllerTests : IClassFixture<WebApplicati
     private static readonly Guid NonExistentId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
 
     private readonly FakeReadService _fakeReadService;
+    private readonly FakeRepository _fakeRepository;
     private readonly HttpClient _client;
 
     public EstablishmentCategoriesControllerTests(WebApplicationFactory<Program> factory)
     {
         _fakeReadService = new FakeReadService();
+        _fakeRepository = new FakeRepository();
 
         _fakeReadService.Seed(new EstablishmentCategoryResponse(
             CategoryId1, "Restaurante", "Establecimientos de comida", null, 1, true));
@@ -36,6 +38,17 @@ public class EstablishmentCategoriesControllerTests : IClassFixture<WebApplicati
 
         _fakeReadService.Seed(new EstablishmentCategoryResponse(
             InactiveCategoryId, "Spa", "Inactiva", null, 3, false));
+
+        _fakeRepository.Seed(EstablishmentCategory.Create(
+            new EstablishmentCategoryId(CategoryId1), "Restaurante", "Establecimientos de comida", null, 1));
+
+        _fakeRepository.Seed(EstablishmentCategory.Create(
+            new EstablishmentCategoryId(CategoryId2), "Cafetería", null, null, 2));
+
+        var inactiveCategory = EstablishmentCategory.Create(
+            new EstablishmentCategoryId(InactiveCategoryId), "Spa", "Inactiva", null, 3);
+        inactiveCategory.Deactivate();
+        _fakeRepository.Seed(inactiveCategory);
 
         WebApplicationFactory<Program> configuredFactory = factory.WithWebHostBuilder(builder =>
         {
@@ -51,11 +64,14 @@ public class EstablishmentCategoriesControllerTests : IClassFixture<WebApplicati
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton<IEstablishmentCategoryReadService>(_fakeReadService);
+                services.AddSingleton<IEstablishmentCategoryRepository>(_fakeRepository);
             });
         });
 
         _client = configuredFactory.CreateClient();
     }
+
+    // --- GET /api/v1/establishment-categories ---
 
     [Fact]
     public async Task ListActive_ReturnsOk()
@@ -136,6 +152,8 @@ public class EstablishmentCategoriesControllerTests : IClassFixture<WebApplicati
 
         Assert.Empty(items);
     }
+
+    // --- GET /api/v1/establishment-categories/{id} ---
 
     [Fact]
     public async Task GetById_ExistingId_ReturnsOk()
@@ -244,34 +262,266 @@ public class EstablishmentCategoriesControllerTests : IClassFixture<WebApplicati
         Assert.True(items[0].TryGetProperty("iconUrl", out _));
     }
 
-    [Fact]
-    public async Task Post_ReturnsMethodNotAllowed()
-    {
-        HttpResponseMessage response = await _client.PostAsync(
-            BasePath, null, TestContext.Current.CancellationToken);
+    // --- POST /api/v1/establishment-categories ---
 
-        Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+    [Fact]
+    public async Task Create_ValidInput_ReturnsCreated()
+    {
+        var request = new
+        {
+            Name = "Panadería",
+            Description = "Venta de pan y productos horneados.",
+            SortOrder = 10,
+            IconUrl = (string?)null
+        };
+
+        HttpResponseMessage response = await _client.PostAsJsonAsync(
+            BasePath, request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
     [Fact]
-    public async Task Put_ReturnsMethodNotAllowed()
+    public async Task Create_ValidInput_IncludesLocationHeader()
     {
-        HttpResponseMessage response = await _client.PutAsync(
-            $"{BasePath}/{CategoryId1}", null, TestContext.Current.CancellationToken);
+        var request = new
+        {
+            Name = "Heladería",
+            Description = (string?)null,
+            SortOrder = 11,
+            IconUrl = (string?)null
+        };
 
-        Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+        HttpResponseMessage response = await _client.PostAsJsonAsync(
+            BasePath, request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.NotNull(response.Headers.Location);
+
+        JsonElement body = await response.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken);
+
+        string createdId = body.GetProperty("id").GetString()!;
+        Assert.True(Guid.TryParse(createdId, out _));
+
+        string expectedSuffix = $"/api/v1/establishment-categories/{createdId}";
+        Assert.EndsWith(expectedSuffix, response.Headers.Location.ToString());
     }
 
     [Fact]
-    public async Task Patch_ReturnsMethodNotAllowed()
+    public async Task Create_InvalidInput_ReturnsBadRequest()
     {
-        HttpRequestMessage request = new(HttpMethod.Patch, $"{BasePath}/{CategoryId1}");
+        var request = new
+        {
+            Name = "",
+            Description = (string?)null,
+            SortOrder = 1,
+            IconUrl = (string?)null
+        };
 
-        HttpResponseMessage response = await _client.SendAsync(
-            request, TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await _client.PostAsJsonAsync(
+            BasePath, request, TestContext.Current.CancellationToken);
 
-        Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Create_DuplicateName_ReturnsConflict()
+    {
+        var request = new
+        {
+            Name = "Restaurante",
+            Description = (string?)null,
+            SortOrder = 1,
+            IconUrl = (string?)null
+        };
+
+        HttpResponseMessage response = await _client.PostAsJsonAsync(
+            BasePath, request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_DuplicateNameDifferentCasing_ReturnsConflict()
+    {
+        var request = new
+        {
+            Name = "restaurante",
+            Description = (string?)null,
+            SortOrder = 1,
+            IconUrl = (string?)null
+        };
+
+        HttpResponseMessage response = await _client.PostAsJsonAsync(
+            BasePath, request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_DoesNotAcceptSystemControlledFields()
+    {
+        var request = new
+        {
+            Name = "Pizzería",
+            Description = (string?)null,
+            SortOrder = 12,
+            IconUrl = (string?)null,
+            Id = Guid.NewGuid(),
+            IsActive = false,
+            CreatedAtUtc = "2020-01-01T00:00:00Z",
+            UpdatedAtUtc = "2020-01-01T00:00:00Z"
+        };
+
+        HttpResponseMessage response = await _client.PostAsJsonAsync(
+            BasePath, request, TestContext.Current.CancellationToken);
+
+        // Extra fields should be ignored — creation should still succeed
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    // --- PUT /api/v1/establishment-categories/{id} ---
+
+    [Fact]
+    public async Task Update_ValidInput_ReturnsNoContent()
+    {
+        var request = new
+        {
+            Name = "Restaurante",
+            Description = "Establecimiento gastronómico dedicado a la preparación de comidas.",
+            SortOrder = 1,
+            IconUrl = (string?)null
+        };
+
+        HttpResponseMessage response = await _client.PutAsJsonAsync(
+            $"{BasePath}/{CategoryId1}", request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Update_NonExistentId_ReturnsNotFound()
+    {
+        var request = new
+        {
+            Name = "Inexistente",
+            Description = (string?)null,
+            SortOrder = 1,
+            IconUrl = (string?)null
+        };
+
+        HttpResponseMessage response = await _client.PutAsJsonAsync(
+            $"{BasePath}/{NonExistentId}", request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Update_DuplicateName_ReturnsConflict()
+    {
+        var request = new
+        {
+            Name = "Restaurante",
+            Description = (string?)null,
+            SortOrder = 1,
+            IconUrl = (string?)null
+        };
+
+        HttpResponseMessage response = await _client.PutAsJsonAsync(
+            $"{BasePath}/{CategoryId2}", request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Update_DoesNotAcceptSystemControlledFields()
+    {
+        var request = new
+        {
+            Name = "Restaurante",
+            Description = "Actualizada.",
+            SortOrder = 1,
+            IconUrl = (string?)null,
+            Id = Guid.NewGuid(),
+            IsActive = false,
+            CreatedAtUtc = "2020-01-01T00:00:00Z",
+            UpdatedAtUtc = "2020-01-01T00:00:00Z"
+        };
+
+        HttpResponseMessage response = await _client.PutAsJsonAsync(
+            $"{BasePath}/{CategoryId1}", request, TestContext.Current.CancellationToken);
+
+        // Extra fields should be ignored — update should still succeed
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    // --- PATCH /api/v1/establishment-categories/{id}/status ---
+
+    [Fact]
+    public async Task UpdateStatus_Deactivate_ReturnsNoContent()
+    {
+        var request = new { IsActive = false };
+
+        HttpResponseMessage response = await _client.PatchAsJsonAsync(
+            $"{BasePath}/{CategoryId1}/status", request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_Activate_ReturnsNoContent()
+    {
+        var request = new { IsActive = true };
+
+        HttpResponseMessage response = await _client.PatchAsJsonAsync(
+            $"{BasePath}/{InactiveCategoryId}/status", request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_NonExistentId_ReturnsNotFound()
+    {
+        var request = new { IsActive = false };
+
+        HttpResponseMessage response = await _client.PatchAsJsonAsync(
+            $"{BasePath}/{NonExistentId}/status", request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_IsIdempotent()
+    {
+        var request = new { IsActive = true };
+
+        HttpResponseMessage response1 = await _client.PatchAsJsonAsync(
+            $"{BasePath}/{CategoryId1}/status", request, TestContext.Current.CancellationToken);
+        HttpResponseMessage response2 = await _client.PatchAsJsonAsync(
+            $"{BasePath}/{CategoryId1}/status", request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, response1.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, response2.StatusCode);
+    }
+
+    // --- GET continues working ---
+
+    [Fact]
+    public async Task GetById_ContinuesWorking_AfterWriteOperations()
+    {
+        HttpResponseMessage response = await _client.GetAsync(
+            $"{BasePath}/{CategoryId1}", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        JsonElement body = (await response.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken));
+
+        Assert.Equal("Restaurante", body.GetProperty("name").GetString());
+    }
+
+    // --- DELETE (not allowed) ---
 
     [Fact]
     public async Task Delete_ReturnsMethodNotAllowed()
@@ -281,6 +531,8 @@ public class EstablishmentCategoriesControllerTests : IClassFixture<WebApplicati
 
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
     }
+
+    // --- Inline fakes ---
 
     private sealed class FakeReadService : IEstablishmentCategoryReadService
     {
@@ -299,5 +551,32 @@ public class EstablishmentCategoriesControllerTests : IClassFixture<WebApplicati
                     .OrderBy(r => r.SortOrder)
                     .ThenBy(r => r.Name)
                     .ToList());
+    }
+
+    private sealed class FakeRepository : IEstablishmentCategoryRepository
+    {
+        private readonly List<EstablishmentCategory> _categories = [];
+
+        public void Seed(EstablishmentCategory category) => _categories.Add(category);
+
+        public Task<EstablishmentCategory?> GetByIdAsync(
+            EstablishmentCategoryId id, CancellationToken cancellationToken)
+            => Task.FromResult(_categories.FirstOrDefault(c => c.Id == id));
+
+        public Task<bool> ExistsByNameAsync(
+            string normalizedName, EstablishmentCategoryId? excludingId, CancellationToken cancellationToken)
+            => Task.FromResult(_categories.Any(c =>
+                string.Equals(c.Name, normalizedName, StringComparison.OrdinalIgnoreCase) &&
+                (excludingId is null || c.Id != excludingId.Value)));
+
+        public Task AddAsync(
+            EstablishmentCategory category, CancellationToken cancellationToken)
+        {
+            _categories.Add(category);
+            return Task.CompletedTask;
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 }

@@ -401,10 +401,10 @@ public class LayerDependencyTests
         Assert.Empty(endpointTypes);
     }
 
-    // --- No write endpoints for categories ---
+    // --- EstablishmentCategoriesController endpoint constraints ---
 
     [Fact]
-    public void EstablishmentCategoriesController_ShouldNotHave_WriteEndpoints()
+    public void EstablishmentCategoriesController_ShouldNotHave_DeleteEndpoint()
     {
         var controllerType = ApiAssembly.GetTypes()
             .FirstOrDefault(t => t.Name == "EstablishmentCategoriesController");
@@ -419,9 +419,58 @@ public class LayerDependencyTests
         {
             var attributes = method.GetCustomAttributes(true);
             Assert.DoesNotContain(attributes, a =>
-                a.GetType().Name is "HttpPostAttribute" or "HttpPutAttribute"
-                    or "HttpPatchAttribute" or "HttpDeleteAttribute");
+                a.GetType().Name is "HttpDeleteAttribute");
         }
+    }
+
+    [Fact]
+    public void EstablishmentCategoriesController_HasExactlyFiveEndpoints()
+    {
+        var controllerType = ApiAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "EstablishmentCategoriesController");
+
+        Assert.NotNull(controllerType);
+
+        var methods = controllerType.GetMethods(System.Reflection.BindingFlags.Public |
+                                                 System.Reflection.BindingFlags.Instance |
+                                                 System.Reflection.BindingFlags.DeclaredOnly);
+
+        var httpAttributeNames = new HashSet<string>
+        {
+            "HttpGetAttribute", "HttpPostAttribute", "HttpPutAttribute",
+            "HttpPatchAttribute", "HttpDeleteAttribute"
+        };
+
+        var actions = methods.Where(m =>
+            m.GetCustomAttributes(true).Any(a =>
+                httpAttributeNames.Contains(a.GetType().Name)))
+            .ToList();
+
+        Assert.Equal(5, actions.Count);
+    }
+
+    [Fact]
+    public void EstablishmentCategoriesController_ContainsExpectedHttpMethods()
+    {
+        var controllerType = ApiAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "EstablishmentCategoriesController");
+
+        Assert.NotNull(controllerType);
+
+        var methods = controllerType.GetMethods(System.Reflection.BindingFlags.Public |
+                                                 System.Reflection.BindingFlags.Instance |
+                                                 System.Reflection.BindingFlags.DeclaredOnly);
+
+        var allAttributes = methods
+            .SelectMany(m => m.GetCustomAttributes(true))
+            .Select(a => a.GetType().Name)
+            .ToList();
+
+        Assert.Contains("HttpGetAttribute", allAttributes);
+        Assert.Contains("HttpPostAttribute", allAttributes);
+        Assert.Contains("HttpPutAttribute", allAttributes);
+        Assert.Contains("HttpPatchAttribute", allAttributes);
+        Assert.DoesNotContain("HttpDeleteAttribute", allAttributes);
     }
 
     // --- No EnsureCreated in production code ---

@@ -75,9 +75,95 @@ public class SwaggerTests : IClassFixture<WebApplicationFactory<Program>>
 
         Assert.True(paths.TryGetProperty("/api/v1/establishment-categories", out JsonElement categories));
         Assert.True(categories.TryGetProperty("get", out _));
+        Assert.True(categories.TryGetProperty("post", out _));
 
         Assert.True(paths.TryGetProperty("/api/v1/establishment-categories/{id}", out JsonElement byId));
         Assert.True(byId.TryGetProperty("get", out _));
+        Assert.True(byId.TryGetProperty("put", out _));
+
+        Assert.True(paths.TryGetProperty("/api/v1/establishment-categories/{id}/status", out JsonElement status));
+        Assert.True(status.TryGetProperty("patch", out _));
+    }
+
+    [Fact]
+    public async Task SwaggerJson_ContainsExactlyFiveCategoryEndpoints()
+    {
+        JsonElement doc = await GetSwaggerDocAsync();
+        JsonElement paths = doc.GetProperty("paths");
+
+        int count = 0;
+
+        if (paths.TryGetProperty("/api/v1/establishment-categories", out JsonElement categories))
+        {
+            foreach (JsonProperty _ in categories.EnumerateObject())
+            {
+                count++;
+            }
+        }
+
+        if (paths.TryGetProperty("/api/v1/establishment-categories/{id}", out JsonElement byId))
+        {
+            foreach (JsonProperty _ in byId.EnumerateObject())
+            {
+                count++;
+            }
+        }
+
+        if (paths.TryGetProperty("/api/v1/establishment-categories/{id}/status", out JsonElement status))
+        {
+            foreach (JsonProperty _ in status.EnumerateObject())
+            {
+                count++;
+            }
+        }
+
+        Assert.Equal(5, count);
+    }
+
+    [Fact]
+    public async Task SwaggerJson_DoesNotContainDeleteForCategories()
+    {
+        JsonElement doc = await GetSwaggerDocAsync();
+        JsonElement paths = doc.GetProperty("paths");
+
+        if (paths.TryGetProperty("/api/v1/establishment-categories", out JsonElement categories))
+        {
+            Assert.False(categories.TryGetProperty("delete", out _));
+        }
+
+        if (paths.TryGetProperty("/api/v1/establishment-categories/{id}", out JsonElement byId))
+        {
+            Assert.False(byId.TryGetProperty("delete", out _));
+        }
+
+        if (paths.TryGetProperty("/api/v1/establishment-categories/{id}/status", out JsonElement status))
+        {
+            Assert.False(status.TryGetProperty("delete", out _));
+        }
+    }
+
+    [Fact]
+    public async Task SwaggerJson_CategorySchemasDoNotContainCode()
+    {
+        JsonElement doc = await GetSwaggerDocAsync();
+        JsonElement paths = doc.GetProperty("paths");
+
+        JsonElement postOperation = paths
+            .GetProperty("/api/v1/establishment-categories")
+            .GetProperty("post");
+
+        string postJson = postOperation.GetRawText();
+        Assert.DoesNotContain("\"code\"", postJson, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SwaggerJson_ContainsPostForCategories()
+    {
+        JsonElement doc = await GetSwaggerDocAsync();
+        JsonElement paths = doc.GetProperty("paths");
+
+        Assert.True(paths.TryGetProperty("/api/v1/establishment-categories", out JsonElement categories));
+        Assert.True(categories.TryGetProperty("post", out _));
     }
 
     [Fact]
