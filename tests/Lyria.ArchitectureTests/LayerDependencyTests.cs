@@ -541,6 +541,68 @@ public class LayerDependencyTests
         Assert.NotEmpty(generatedMediatorTypes);
     }
 
+    // --- Domain and Application should not depend on Serilog ---
+
+    [Fact]
+    public void Domain_ShouldNotDependOn_Serilog()
+    {
+        IArchRule rule = Types().That().Are(DomainLayer)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInNamespace("Serilog");
+        AssertRule(rule);
+    }
+
+    [Fact]
+    public void Application_ShouldNotDependOn_Serilog()
+    {
+        IArchRule rule = Types().That().Are(ApplicationLayer)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInNamespace("Serilog");
+        AssertRule(rule);
+    }
+
+    [Fact]
+    public void Infrastructure_ShouldNotDependOn_Serilog()
+    {
+        IArchRule rule = Types().That().Are(InfrastructureLayer)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInNamespace("Serilog");
+        AssertRule(rule);
+    }
+
+    [Fact]
+    public void Domain_ShouldNotReference_SerilogAssembly()
+    {
+        var references = DomainAssembly.GetReferencedAssemblies()
+            .Select(a => a.Name)
+            .ToList();
+
+        Assert.DoesNotContain(references, name =>
+            name!.StartsWith("Serilog", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Application_ShouldNotReference_SerilogAssembly()
+    {
+        var references = ApplicationAssembly.GetReferencedAssemblies()
+            .Select(a => a.Name)
+            .ToList();
+
+        Assert.DoesNotContain(references, name =>
+            name!.StartsWith("Serilog", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Infrastructure_ShouldNotReference_SerilogAssembly()
+    {
+        var references = InfrastructureAssembly.GetReferencedAssemblies()
+            .Select(a => a.Name)
+            .ToList();
+
+        Assert.DoesNotContain(references, name =>
+            name!.StartsWith("Serilog", StringComparison.OrdinalIgnoreCase));
+    }
+
     // --- No EF InMemory ---
 
     [Fact]
