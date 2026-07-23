@@ -9,12 +9,14 @@ using Lyria.Domain.Establishments.Branches;
 using Lyria.Domain.Establishments.Categories;
 using Lyria.Domain.Restrictions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Lyria.Api.FunctionalTests;
 
-public class BranchRestrictionsControllerTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection(LyriaApiTestGroup.Name)]
+public class BranchRestrictionsControllerTests
 {
     private readonly HttpClient _client;
 
@@ -72,6 +74,15 @@ public class BranchRestrictionsControllerTests : IClassFixture<WebApplicationFac
 
         _client = factory.WithWebHostBuilder(builder =>
         {
+            builder.ConfigureAppConfiguration((_, config) =>
+            {
+                config.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Serilog:WriteTo:1:Args:path"] =
+                        Path.Combine(Path.GetTempPath(), "lyria-test-logs", "lyria-.log")
+                });
+            });
+
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton<IEstablishmentBranchRepository>(branchRepository);

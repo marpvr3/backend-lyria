@@ -7,7 +7,8 @@ using Xunit;
 
 namespace Lyria.Api.FunctionalTests;
 
-public class SwaggerTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection(LyriaApiTestGroup.Name)]
+public class SwaggerTests
 {
     private readonly HttpClient _client;
 
@@ -20,7 +21,9 @@ public class SwaggerTests : IClassFixture<WebApplicationFactory<Program>>
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["ConnectionStrings:LyriaDatabase"] =
-                        "Server=(localdb)\\mssqllocaldb;Database=LyriaTest;Trusted_Connection=True"
+                        "Server=(localdb)\\mssqllocaldb;Database=LyriaTest;Trusted_Connection=True",
+                    ["Serilog:WriteTo:1:Args:path"] =
+                        Path.Combine(Path.GetTempPath(), "lyria-test-logs", "lyria-.log")
                 });
             });
         });

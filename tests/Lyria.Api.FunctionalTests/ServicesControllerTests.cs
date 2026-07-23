@@ -6,12 +6,14 @@ using Lyria.Application.Common;
 using Lyria.Application.Features.Services;
 using Lyria.Domain.Services;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Lyria.Api.FunctionalTests;
 
-public class ServicesControllerTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection(LyriaApiTestGroup.Name)]
+public class ServicesControllerTests
 {
     private readonly HttpClient _client;
 
@@ -31,6 +33,15 @@ public class ServicesControllerTests : IClassFixture<WebApplicationFactory<Progr
 
         _client = factory.WithWebHostBuilder(builder =>
         {
+            builder.ConfigureAppConfiguration((_, config) =>
+            {
+                config.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Serilog:WriteTo:1:Args:path"] =
+                        Path.Combine(Path.GetTempPath(), "lyria-test-logs", "lyria-.log")
+                });
+            });
+
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton<IServiceRepository>(repository);

@@ -15,7 +15,8 @@ using Xunit;
 
 namespace Lyria.Api.FunctionalTests;
 
-public class EstablishmentBranchesControllerTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection(LyriaApiTestGroup.Name)]
+public class EstablishmentBranchesControllerTests
 {
     private static readonly Guid CategoryId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private static readonly Guid EstablishmentId = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -64,7 +65,9 @@ public class EstablishmentBranchesControllerTests : IClassFixture<WebApplication
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["ConnectionStrings:LyriaDatabase"] =
-                        "Server=(localdb)\\mssqllocaldb;Database=LyriaTest;Trusted_Connection=True"
+                        "Server=(localdb)\\mssqllocaldb;Database=LyriaTest;Trusted_Connection=True",
+                    ["Serilog:WriteTo:1:Args:path"] =
+                        Path.Combine(Path.GetTempPath(), "lyria-test-logs", "lyria-.log")
                 });
             });
 

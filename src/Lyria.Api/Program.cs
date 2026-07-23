@@ -1,14 +1,39 @@
+using System.Globalization;
 using Lyria.Api.Extensions;
+using Serilog;
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
+    .CreateBootstrapLogger();
 
-builder.Services.AddLyriaServices(builder.Configuration);
+try
+{
+    Log.Information("Iniciando Lyria API");
 
-WebApplication app = builder.Build();
+    WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-app.UseLyriaPipeline();
+    builder.Services.AddLyriaServices(builder.Configuration);
 
-app.Run();
+    builder.Services.AddSerilog((services, configuration) =>
+        configuration
+            .ReadFrom.Configuration(services.GetRequiredService<IConfiguration>())
+            .ReadFrom.Services(services));
+
+    WebApplication app = builder.Build();
+
+    app.UseLyriaPipeline();
+
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Lyria API terminó de forma inesperada");
+}
+finally
+{
+    Log.Information("Finalizando Lyria API");
+    Log.CloseAndFlush();
+}
 
 namespace Lyria.Api
 {
