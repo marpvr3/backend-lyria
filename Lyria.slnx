@@ -10,6 +10,7 @@
     <Project Path="tests/Lyria.Application.UnitTests/Lyria.Application.UnitTests.csproj" />
     <Project Path="tests/Lyria.Infrastructure.IntegrationTests/Lyria.Infrastructure.IntegrationTests.csproj" />
     <Project Path="tests/Lyria.Api.FunctionalTests/Lyria.Api.FunctionalTests.csproj" />
+    <Project Path="tests/Lyria.Api.UnitTests/Lyria.Api.UnitTests.csproj" />
     <Project Path="tests/Lyria.ArchitectureTests/Lyria.ArchitectureTests.csproj" />
   </Folder>
 </Solution>

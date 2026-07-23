@@ -6,6 +6,8 @@ public static class WebApplicationExtensions
 {
     public static WebApplication UseLyriaPipeline(this WebApplication app)
     {
+        app.UseMiddleware<HttpFailureLoggingMiddleware>();
+
         app.UseExceptionHandler();
 
         app.UseSerilogRequestLogging(options =>

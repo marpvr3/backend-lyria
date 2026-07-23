@@ -15,9 +15,13 @@ try
     builder.Services.AddLyriaServices(builder.Configuration);
 
     builder.Services.AddSerilog((services, configuration) =>
+    {
+        IConfiguration config = services.GetRequiredService<IConfiguration>();
         configuration
-            .ReadFrom.Configuration(services.GetRequiredService<IConfiguration>())
-            .ReadFrom.Services(services));
+            .ReadFrom.Configuration(config)
+            .ReadFrom.Services(services)
+            .AddDatabaseLogging(config);
+    });
 
     WebApplication app = builder.Build();
 

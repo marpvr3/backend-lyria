@@ -43,6 +43,7 @@ public static class ServiceCollectionExtensions
         });
         services.AddProblemDetails();
         services.AddExceptionHandler<UniqueConstraintExceptionHandler>();
+        services.AddExceptionHandler<GlobalExceptionHandler>();
 
         return services;
     }
