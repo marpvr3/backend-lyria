@@ -47,6 +47,9 @@ public static class DependencyInjection
         services.AddScoped<IEstablishmentBranchRestrictionRepository, EstablishmentBranchRestrictionRepository>();
         services.AddScoped<IEstablishmentBranchRestrictionReadService, EstablishmentBranchRestrictionReadService>();
 
+        services.AddScoped<IBranchScheduleRepository, BranchScheduleRepository>();
+        services.AddScoped<IBranchScheduleReadService, BranchScheduleReadService>();
+
         return services;
     }
 }
