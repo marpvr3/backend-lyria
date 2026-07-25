@@ -53,6 +53,10 @@ public static class DependencyInjection
         services.AddScoped<IBranchImageRepository, BranchImageRepository>();
         services.AddScoped<IBranchImageReadService, BranchImageReadService>();
 
+        services.AddScoped<IPublicEstablishmentReadService, PublicEstablishmentReadService>();
+        services.AddScoped<IPublicBranchReadService, PublicBranchReadService>();
+        services.AddScoped<IPublicCatalogReadService, PublicCatalogReadService>();
+
         return services;
     }
 }
