@@ -50,6 +50,9 @@ public static class DependencyInjection
         services.AddScoped<IBranchScheduleRepository, BranchScheduleRepository>();
         services.AddScoped<IBranchScheduleReadService, BranchScheduleReadService>();
 
+        services.AddScoped<IBranchImageRepository, BranchImageRepository>();
+        services.AddScoped<IBranchImageReadService, BranchImageReadService>();
+
         return services;
     }
 }
