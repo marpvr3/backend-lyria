@@ -26,7 +26,7 @@ public sealed class UpdateBranchImageStatusTests
             EstablishmentId.New(),
             "Sede Test", "Calle Test 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         _branchRepository.Seed(branch);
 
         var image = BranchImage.Create(
@@ -113,7 +113,7 @@ public sealed class UpdateBranchImageStatusTests
             EstablishmentId.New(),
             "Sede Test", "Calle Test 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         _branchRepository.Seed(branch);
 
         var command = new UpdateBranchImageStatusCommand(branchId, Guid.NewGuid(), false);
@@ -135,7 +135,7 @@ public sealed class UpdateBranchImageStatusTests
             EstablishmentId.New(),
             "Otra Sede", "Otra Calle 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         _branchRepository.Seed(otherBranch);
 
         var command = new UpdateBranchImageStatusCommand(otherBranchId, image.Id.Value, false);

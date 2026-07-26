@@ -1,5 +1,6 @@
 using Lyria.Application.Abstractions.Messaging;
 using Lyria.Application.Abstractions.Persistence;
+using Lyria.Application.Abstractions.Services;
 using Lyria.Application.Common.Results;
 using Lyria.Domain.Establishments;
 using Lyria.Domain.Establishments.Branches;
@@ -8,7 +9,9 @@ namespace Lyria.Application.Features.EstablishmentBranches.Create;
 
 public sealed class CreateEstablishmentBranchCommandHandler(
     IEstablishmentBranchRepository branchRepository,
-    IEstablishmentRepository establishmentRepository)
+    IEstablishmentRepository establishmentRepository,
+    ITimeZoneService timeZoneService,
+    IBranchTimeZoneDefaults timeZoneDefaults)
     : ICommandHandler<CreateEstablishmentBranchCommand, EstablishmentBranchId>
 {
     public async ValueTask<Result<EstablishmentBranchId>> Handle(
@@ -45,6 +48,16 @@ public sealed class CreateEstablishmentBranchCommandHandler(
 
         var id = EstablishmentBranchId.New();
 
+        string timeZoneId = string.IsNullOrWhiteSpace(command.TimeZoneId)
+            ? timeZoneDefaults.DefaultTimeZoneId
+            : command.TimeZoneId;
+
+        if (!timeZoneService.IsValid(timeZoneId))
+        {
+            return Result.Failure<EstablishmentBranchId>(
+                EstablishmentBranchErrors.InvalidTimeZone(timeZoneId));
+        }
+
         var branch = EstablishmentBranch.Create(
             id,
             establishmentId,
@@ -61,7 +74,8 @@ public sealed class CreateEstablishmentBranchCommandHandler(
             command.Longitude,
             command.Phone,
             command.WhatsApp,
-            command.Email);
+            command.Email,
+            timeZoneId);
 
         branchRepository.Add(branch);
         await branchRepository.SaveChangesAsync(cancellationToken);

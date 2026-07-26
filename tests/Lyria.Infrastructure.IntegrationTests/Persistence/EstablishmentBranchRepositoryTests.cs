@@ -40,7 +40,7 @@ public sealed class EstablishmentBranchRepositoryTests : IDisposable
         var branch = EstablishmentBranch.Create(
             EstablishmentBranchId.New(), establishmentId, "Palermo", "Costa Rica",
             "5865", null, "Palermo", "Buenos Aires", "Buenos Aires", "C1414", "Argentina",
-            -34.586m, -58.432m, null, null, null);
+            -34.586m, -58.432m, null, null, null, "America/Argentina/Buenos_Aires");
 
         await using (var context = _fixture.CreateContext())
         {
@@ -73,7 +73,7 @@ public sealed class EstablishmentBranchRepositoryTests : IDisposable
         var branch = EstablishmentBranch.Create(
             EstablishmentBranchId.New(), establishmentId, "Centro", "Av. Corrientes",
             "1234", null, "Centro", "Buenos Aires", "Buenos Aires", "C1000", "Argentina",
-            -34.604m, -58.381m, null, null, null);
+            -34.604m, -58.381m, null, null, null, "America/Argentina/Buenos_Aires");
 
         await using (var context = _fixture.CreateContext())
         {
@@ -101,7 +101,7 @@ public sealed class EstablishmentBranchRepositoryTests : IDisposable
         var branch = EstablishmentBranch.Create(
             EstablishmentBranchId.New(), establishmentId, "Palermo", "Costa Rica",
             "5865", null, "Palermo", "Buenos Aires", "Buenos Aires", "C1414", "Argentina",
-            -34.586m, -58.432m, null, null, null);
+            -34.586m, -58.432m, null, null, null, "America/Argentina/Buenos_Aires");
 
         await using (var context = _fixture.CreateContext())
         {
@@ -142,7 +142,7 @@ public sealed class EstablishmentBranchRepositoryTests : IDisposable
         var branch = EstablishmentBranch.Create(
             EstablishmentBranchId.New(), establishmentId, "Palermo", "Costa Rica",
             "5865", null, "Palermo", "Buenos Aires", "Buenos Aires", "C1414", "Argentina",
-            -34.586m, -58.432m, null, null, null);
+            -34.586m, -58.432m, null, null, null, "America/Argentina/Buenos_Aires");
 
         await using (var context = _fixture.CreateContext())
         {

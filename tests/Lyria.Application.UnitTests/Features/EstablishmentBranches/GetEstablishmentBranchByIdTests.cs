@@ -26,7 +26,7 @@ public sealed class GetEstablishmentBranchByIdTests
             null, "Palermo", "Buenos Aires", "Buenos Aires", "C1414", "Argentina",
             "Costa Rica 5865, Piso 2, Palermo, Buenos Aires, Buenos Aires, C1414, Argentina",
             -34.5795m, -58.4321m, "+54 11 5555-0001", "+54 11 5555-0002", "sede@letitv.com",
-            4.5m, 10, true,
+            4.5m, 10, true, "America/Argentina/Buenos_Aires",
             new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), null));
 
         var query = new GetEstablishmentBranchByIdQuery(id);

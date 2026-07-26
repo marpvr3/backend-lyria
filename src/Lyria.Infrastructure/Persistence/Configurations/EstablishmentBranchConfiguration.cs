@@ -128,6 +128,11 @@ internal sealed class EstablishmentBranchConfiguration
             .IsUnicode(false)
             .IsRequired(false);
 
+        builder.Property(e => e.TimeZoneId)
+            .HasColumnName("ZonaHoraria")
+            .HasMaxLength(EstablishmentBranch.TimeZoneIdMaxLength)
+            .IsRequired();
+
         builder.Property(e => e.RatingAverage)
             .HasColumnName("RatingPromedio")
             .HasColumnType("decimal(3,2)")

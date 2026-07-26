@@ -30,7 +30,7 @@ public class BranchImagesControllerTests
             new EstablishmentBranchId(BranchIdGuid), establishment.Id,
             "Sede Palermo", "Costa Rica 5865",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
 
         var branchRepository = new FakeBranchRepository();
         branchRepository.Seed(branch);

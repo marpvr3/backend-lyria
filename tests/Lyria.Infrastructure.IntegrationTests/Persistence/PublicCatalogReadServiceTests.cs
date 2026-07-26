@@ -66,7 +66,7 @@ public sealed class PublicCatalogReadServiceTests : IDisposable
     {
         var id = EstablishmentBranchId.New();
         var branch = EstablishmentBranch.Create(
-            id, establishmentId, $"Sede-{id.Value:N}", "Calle 1", null, null, null, city, province, null, country, null, null, null, null, null);
+            id, establishmentId, $"Sede-{id.Value:N}", "Calle 1", null, null, null, city, province, null, country, null, null, null, null, null, "America/Argentina/Buenos_Aires");
         if (!isActive)
         {
             branch.Deactivate();

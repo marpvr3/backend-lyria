@@ -26,7 +26,7 @@ public sealed class CreateBranchImageTests
             EstablishmentId.New(),
             "Sede Test", "Calle Test 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         _branchRepository.Seed(branch);
     }
 

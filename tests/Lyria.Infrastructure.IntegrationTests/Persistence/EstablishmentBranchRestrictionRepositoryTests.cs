@@ -28,7 +28,7 @@ public sealed class EstablishmentBranchRestrictionRepositoryTests : IDisposable
             EstablishmentBranchId.New(), establishment.Id,
             "Sede Central", "Costa Rica 5865",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         context.Set<EstablishmentBranch>().Add(branch);
 
         var restriction = Restriction.Create(RestrictionId.New(), "Vegano", "Sin productos animales.");

@@ -63,7 +63,8 @@ public sealed class EstablishmentBranchesController(IMediator mediator) : Contro
             request.Longitude,
             request.Phone,
             request.WhatsApp,
-            request.Email);
+            request.Email,
+            request.TimeZoneId);
 
         Result<EstablishmentBranchId> result = await mediator.Send(command, cancellationToken);
 
@@ -234,6 +235,7 @@ public sealed class EstablishmentBranchesController(IMediator mediator) : Contro
 /// <param name="Phone">Teléfono de contacto de la sede.</param>
 /// <param name="WhatsApp">WhatsApp de contacto de la sede.</param>
 /// <param name="Email">Correo electrónico de contacto de la sede.</param>
+/// <param name="TimeZoneId">Identificador de zona horaria IANA de la sede.</param>
 public sealed record CreateEstablishmentBranchRequest(
     string Name,
     string Street,
@@ -248,7 +250,8 @@ public sealed record CreateEstablishmentBranchRequest(
     decimal? Longitude,
     string? Phone,
     string? WhatsApp,
-    string? Email);
+    string? Email,
+    string? TimeZoneId);
 
 /// <summary>
 /// Datos para actualizar una sede.

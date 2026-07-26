@@ -23,6 +23,7 @@ namespace Lyria.Application.Features.EstablishmentBranches;
 /// <param name="RatingAverage">Calificación promedio de la sede.</param>
 /// <param name="TotalReviews">Cantidad total de reseñas de la sede.</param>
 /// <param name="IsActive">Indica si la sede está activa.</param>
+/// <param name="TimeZoneId">Identificador IANA de la zona horaria de la sede.</param>
 /// <param name="CreatedAtUtc">Fecha y hora UTC en que se creó el registro.</param>
 /// <param name="UpdatedAtUtc">Fecha y hora UTC de la última modificación.</param>
 public sealed record EstablishmentBranchResponse(
@@ -46,5 +47,6 @@ public sealed record EstablishmentBranchResponse(
     decimal RatingAverage,
     int TotalReviews,
     bool IsActive,
+    string TimeZoneId,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc);

@@ -30,7 +30,7 @@ public sealed class AssignRestrictionToBranchTests
             establishment.Id,
             "Sede Palermo", "Costa Rica 5865",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         _branchRepository.Seed(_activeBranch);
 
         _activeRestriction = Restriction.Create(RestrictionId.New(), "Vegano", "Sin productos animales.");
