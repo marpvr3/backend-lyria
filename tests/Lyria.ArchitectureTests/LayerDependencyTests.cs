@@ -603,6 +603,114 @@ public class LayerDependencyTests
             name!.StartsWith("Serilog", StringComparison.OrdinalIgnoreCase));
     }
 
+    // --- Availability feature location rules ---
+
+    [Fact]
+    public void BranchAvailabilityCalculator_IsInDomainLayer()
+    {
+        var type = DomainAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "BranchAvailabilityCalculator");
+
+        Assert.NotNull(type);
+        Assert.StartsWith("Lyria.Domain", type.Namespace!);
+    }
+
+    [Fact]
+    public void BranchOpenStatus_IsInDomainLayer()
+    {
+        var type = DomainAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "BranchOpenStatus");
+
+        Assert.NotNull(type);
+        Assert.StartsWith("Lyria.Domain", type.Namespace!);
+    }
+
+    [Fact]
+    public void ScheduleSource_IsInDomainLayer()
+    {
+        var type = DomainAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "ScheduleSource");
+
+        Assert.NotNull(type);
+        Assert.StartsWith("Lyria.Domain", type.Namespace!);
+    }
+
+    [Fact]
+    public void IBranchAvailabilityReadService_IsInApplicationLayer()
+    {
+        var type = ApplicationAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "IBranchAvailabilityReadService");
+
+        Assert.NotNull(type);
+        Assert.True(type.IsInterface);
+        Assert.StartsWith("Lyria.Application", type.Namespace!);
+    }
+
+    [Fact]
+    public void BranchAvailabilityReadService_IsInInfrastructureLayer()
+    {
+        var type = InfrastructureAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "BranchAvailabilityReadService");
+
+        Assert.NotNull(type);
+        Assert.False(type.IsInterface);
+        Assert.StartsWith("Lyria.Infrastructure", type.Namespace!);
+    }
+
+    [Fact]
+    public void PublicBranchAvailabilityResponse_IsInApplicationLayer()
+    {
+        var type = ApplicationAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "PublicBranchAvailabilityResponse");
+
+        Assert.NotNull(type);
+        Assert.StartsWith("Lyria.Application", type.Namespace!);
+    }
+
+    [Fact]
+    public void BranchOpenStatusNames_IsInApplicationLayer()
+    {
+        var type = ApplicationAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "BranchOpenStatusNames");
+
+        Assert.NotNull(type);
+        Assert.StartsWith("Lyria.Application", type.Namespace!);
+    }
+
+    [Fact]
+    public void BranchAvailabilityContext_IsInApplicationLayer()
+    {
+        var type = ApplicationAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "BranchAvailabilityContext");
+
+        Assert.NotNull(type);
+        Assert.StartsWith("Lyria.Application", type.Namespace!);
+    }
+
+    [Fact]
+    public void Domain_DoesNotReference_BranchAvailabilityContext()
+    {
+        var domainTypes = DomainAssembly.GetTypes();
+        var contextType = domainTypes.FirstOrDefault(t => t.Name == "BranchAvailabilityContext");
+
+        Assert.Null(contextType);
+    }
+
+    [Fact]
+    public void PublicEstablishmentListItemResponse_HasOpenBranchCountProperty()
+    {
+        var type = ApplicationAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "PublicEstablishmentListItemResponse");
+
+        Assert.NotNull(type);
+
+        var openBranchCountProp = type.GetProperty("OpenBranchCount");
+        Assert.NotNull(openBranchCountProp);
+
+        var hasOpenBranchProp = type.GetProperty("HasOpenBranch");
+        Assert.NotNull(hasOpenBranchProp);
+    }
+
     // --- No EF InMemory ---
 
     [Fact]

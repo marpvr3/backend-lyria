@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Lyria.Application.Abstractions.Persistence;
+using Lyria.Application.Abstractions.Services;
 using Lyria.Application.Common;
 using Lyria.Application.Features.PublicCatalog;
 using Lyria.Domain.Establishments.Branches;
@@ -50,6 +51,7 @@ public class PublicEstablishmentsControllerTests
                 services.AddSingleton<IPublicEstablishmentReadService>(fakeEstablishmentService);
                 services.AddSingleton<IPublicBranchReadService>(fakeBranchService);
                 services.AddSingleton<IPublicCatalogReadService>(fakeCatalogService);
+                services.AddSingleton<IBranchAvailabilityReadService>(new FakeBranchAvailabilityReadService());
             });
         });
 
@@ -313,6 +315,81 @@ public class PublicEstablishmentsControllerTests
         Assert.False(body.TryGetProperty("updatedAtUtc", out _));
     }
 
+    // --- Availability integration ---
+
+    [Fact]
+    public async Task List_ResponseItems_IncludeOpenBranchCountAndHasOpenBranch()
+    {
+        HttpResponseMessage response = await _client.GetAsync(
+            BasePath, TestContext.Current.CancellationToken);
+
+        JsonElement body = await response.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken);
+
+        JsonElement items = body.GetProperty("items");
+        Assert.True(items.GetArrayLength() > 0);
+
+        foreach (JsonElement item in items.EnumerateArray())
+        {
+            Assert.True(item.TryGetProperty("openBranchCount", out _));
+            Assert.True(item.TryGetProperty("hasOpenBranch", out _));
+        }
+    }
+
+    [Fact]
+    public async Task List_WithOpenNowFilter_Returns200()
+    {
+        HttpResponseMessage response = await _client.GetAsync(
+            $"{BasePath}?openNow=true", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task List_WithOpenNowFalse_Returns200()
+    {
+        HttpResponseMessage response = await _client.GetAsync(
+            $"{BasePath}?openNow=false", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetBySlug_ResponseBranches_IncludeAvailabilityField()
+    {
+        HttpResponseMessage response = await _client.GetAsync(
+            $"{BasePath}/let-it-v", TestContext.Current.CancellationToken);
+
+        JsonElement body = await response.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken);
+
+        Assert.True(body.TryGetProperty("branches", out JsonElement branches));
+        Assert.True(branches.GetArrayLength() > 0);
+
+        foreach (JsonElement branch in branches.EnumerateArray())
+        {
+            Assert.True(branch.TryGetProperty("availability", out _));
+        }
+    }
+
+    [Fact]
+    public async Task List_WithOpenNowAndSearch_Returns200()
+    {
+        HttpResponseMessage response = await _client.GetAsync(
+            $"{BasePath}?openNow=true&search=Let", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task List_WithOpenNowAndCategory_Returns200()
+    {
+        HttpResponseMessage response = await _client.GetAsync(
+            $"{BasePath}?openNow=true&categoryId={CategoryId}", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
     // --- Inline fakes ---
 
     private sealed class FakePublicEstablishmentReadService : IPublicEstablishmentReadService
@@ -336,10 +413,10 @@ public class PublicEstablishmentsControllerTests
             [
                 new PublicEstablishmentListItemResponse(
                     EstablishmentId1, "Let It V", "let-it-v", "Vegano",
-                    null, null, category, 1, ["Bogotá"], services, restrictions),
+                    null, null, category, 1, 0, false, ["Bogotá"], services, restrictions),
                 new PublicEstablishmentListItemResponse(
                     EstablishmentId2, "Green Bowl", "green-bowl", "Saludable",
-                    null, null, category, 2, ["Medellín"], services, restrictions)
+                    null, null, category, 2, 0, false, ["Medellín"], services, restrictions)
             ];
 
             var categoryDetail = new PublicCategoryDetailResponse(CategoryId, "Restaurante", "Categoría de restaurantes", null);
@@ -365,7 +442,8 @@ public class PublicEstablishmentsControllerTests
 
             var branchDetail = new PublicBranchDetailResponse(
                 BranchId1, "Sede Chapinero", branchAddress, branchLocation, branchContact,
-                branchServices, branchRestrictions, branchSchedules, branchImages);
+                branchServices, branchRestrictions, branchSchedules, branchImages,
+                PublicBranchAvailabilityResponse.Default);
 
             _detailBySlug = new Dictionary<string, PublicEstablishmentDetailResponse>
             {
@@ -440,5 +518,21 @@ public class PublicEstablishmentsControllerTests
         public Task<PublicCatalogsResponse> GetCatalogsAsync(CancellationToken cancellationToken)
             => Task.FromResult(new PublicCatalogsResponse([], [], [],
                 new PublicCatalogLocationsResponse([], [], [])));
+    }
+
+    private sealed class FakeBranchAvailabilityReadService : IBranchAvailabilityReadService
+    {
+        public Task<BranchAvailabilityContext?> GetAvailabilityContextAsync(
+            EstablishmentBranchId branchId, DateOnly localDate, CancellationToken cancellationToken)
+            => Task.FromResult<BranchAvailabilityContext?>(null);
+
+        public Task<IReadOnlyDictionary<EstablishmentBranchId, BranchAvailabilityContext>>
+            GetAvailabilityContextsAsync(
+                IReadOnlyCollection<EstablishmentBranchId> branchIds,
+                DateTimeOffset evaluatedAtUtc,
+                ITimeZoneService timeZoneService,
+                CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyDictionary<EstablishmentBranchId, BranchAvailabilityContext>>(
+                new Dictionary<EstablishmentBranchId, BranchAvailabilityContext>());
     }
 }

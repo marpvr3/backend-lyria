@@ -14,6 +14,7 @@ public sealed record GetPublicEstablishmentsQuery(
     Guid? RestrictionId,
     int? ComplianceLevel,
     bool? IsCertified,
+    bool? OpenNow = null,
     int Page = 1,
     int PageSize = 20,
     string SortBy = "name",

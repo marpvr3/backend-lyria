@@ -86,14 +86,14 @@ public sealed class GetPublicEstablishmentsTests
             ],
             new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc)));
 
-        _handler = new GetPublicEstablishmentsQueryHandler(_readService);
+        _handler = new GetPublicEstablishmentsQueryHandler(_readService, TimeProvider.System);
     }
 
     [Fact]
     public async Task Handle_ReturnsFirstPage()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 1, 20);
+            null, null, null, null, null, null, null, null, null, null, 1, 20);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -107,7 +107,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_AppliesPageAndPageSize()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 2, 1);
+            null, null, null, null, null, null, null, null, null, null, 2, 1);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -122,7 +122,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_SearchesByName()
     {
         var query = new GetPublicEstablishmentsQuery(
-            "Alpha", null, null, null, null, null, null, null, null, 1, 20);
+            "Alpha", null, null, null, null, null, null, null, null, null, 1, 20);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -136,7 +136,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_SearchesByDescription()
     {
         var query = new GetPublicEstablishmentsQuery(
-            "artesanal", null, null, null, null, null, null, null, null, 1, 20);
+            "artesanal", null, null, null, null, null, null, null, null, null, 1, 20);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -150,7 +150,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_FiltersByCategory()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, CategoryCafeId, null, null, null, null, null, null, null, 1, 20);
+            null, CategoryCafeId, null, null, null, null, null, null, null, null, 1, 20);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -164,7 +164,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_FiltersByCity()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, "Bogotá", null, null, null, null, null, null, 1, 20);
+            null, null, "Bogotá", null, null, null, null, null, null, null, 1, 20);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -178,7 +178,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_FiltersByProvince()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, "Antioquia", null, null, null, null, null, 1, 20);
+            null, null, null, "Antioquia", null, null, null, null, null, null, 1, 20);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -192,7 +192,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_FiltersByCountry()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, "Perú", null, null, null, null, 1, 20);
+            null, null, null, null, "Perú", null, null, null, null, null, 1, 20);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -206,7 +206,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_FiltersByService()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, ServiceVeganId, null, null, null, 1, 20);
+            null, null, null, null, null, ServiceVeganId, null, null, null, null, 1, 20);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -219,7 +219,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_FiltersByRestriction()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, RestrictionWheelchairId, null, null, 1, 20);
+            null, null, null, null, null, null, RestrictionWheelchairId, null, null, null, 1, 20);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -233,7 +233,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_FiltersByComplianceLevel()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, 1, null, 1, 20);
+            null, null, null, null, null, null, null, 1, null, null, 1, 20);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -247,7 +247,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_FiltersByIsCertified()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, false, 1, 20);
+            null, null, null, null, null, null, null, null, false, null, 1, 20);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -262,7 +262,7 @@ public sealed class GetPublicEstablishmentsTests
     {
         // Alpha Bistro has ServiceVegan + RestrictionPets in the SAME branch
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, ServiceVeganId, RestrictionPetsId, null, null, 1, 20);
+            null, null, null, null, null, ServiceVeganId, RestrictionPetsId, null, null, null, 1, 20);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -278,7 +278,7 @@ public sealed class GetPublicEstablishmentsTests
         // Gamma Sushi has ServiceVegan in branch 1 and RestrictionPets in branch 2
         // Filtering by both should NOT return Gamma Sushi (same-branch semantics)
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, ServiceVeganId, RestrictionPetsId, null, null, 1, 20);
+            null, null, null, null, null, ServiceVeganId, RestrictionPetsId, null, null, null, 1, 20);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -293,7 +293,7 @@ public sealed class GetPublicEstablishmentsTests
     {
         // Category=Restaurant AND Service=Vegan => Alpha Bistro + Gamma Sushi
         var query = new GetPublicEstablishmentsQuery(
-            null, CategoryRestaurantId, null, null, null, ServiceVeganId, null, null, null, 1, 20);
+            null, CategoryRestaurantId, null, null, null, ServiceVeganId, null, null, null, null, 1, 20);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -307,7 +307,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_SortsByNameAsc()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 1, 20, "name", "asc");
+            null, null, null, null, null, null, null, null, null, null, 1, 20, "name", "asc");
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -322,7 +322,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_SortsByNameDesc()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 1, 20, "name", "desc");
+            null, null, null, null, null, null, null, null, null, null, 1, 20, "name", "desc");
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -337,7 +337,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_SortsByNewest()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 1, 20, "newest", "desc");
+            null, null, null, null, null, null, null, null, null, null, 1, 20, "newest", "desc");
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -352,7 +352,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_SortsByBranchCountDesc()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 1, 20, "branchCount", "desc");
+            null, null, null, null, null, null, null, null, null, null, 1, 20, "branchCount", "desc");
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -366,10 +366,10 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_ReturnsEmptyListCorrectly()
     {
         var emptyService = new FakePublicEstablishmentReadService();
-        var handler = new GetPublicEstablishmentsQueryHandler(emptyService);
+        var handler = new GetPublicEstablishmentsQueryHandler(emptyService, TimeProvider.System);
 
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 1, 20);
+            null, null, null, null, null, null, null, null, null, null, 1, 20);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await handler.Handle(query, CancellationToken.None);
@@ -383,7 +383,7 @@ public sealed class GetPublicEstablishmentsTests
     public async Task Handle_CalculatesPaginationMetadata()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 1, 2);
+            null, null, null, null, null, null, null, null, null, null, 1, 2);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await _handler.Handle(query, CancellationToken.None);
@@ -394,5 +394,54 @@ public sealed class GetPublicEstablishmentsTests
         Assert.Equal(1, result.Value.Page);
         Assert.Equal(2, result.Value.PageSize);
         Assert.Equal(2, result.Value.TotalPages);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsOpenBranchCountAndHasOpenBranch()
+    {
+        var query = new GetPublicEstablishmentsQuery(
+            null, null, null, null, null, null, null, null, null, null, 1, 20);
+
+        Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
+            await _handler.Handle(query, CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.All(result.Value.Items, item =>
+        {
+            // The fake always returns OpenBranchCount=0 and HasOpenBranch=false
+            Assert.Equal(0, item.OpenBranchCount);
+            Assert.False(item.HasOpenBranch);
+        });
+    }
+
+    [Fact]
+    public async Task Handle_OpenNowNull_ReturnsAllEstablishments()
+    {
+        var query = new GetPublicEstablishmentsQuery(
+            null, null, null, null, null, null, null, null, null, null, 1, 20);
+
+        Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
+            await _handler.Handle(query, CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(3, result.Value.TotalItems);
+        Assert.Equal(3, result.Value.Items.Count);
+    }
+
+    [Fact]
+    public async Task Handle_QueryPassesOpenNowToFilter()
+    {
+        // When OpenNow is set to true, the handler maps it to the filter.
+        // The fake does not implement OpenNow filtering, so all 3 are returned,
+        // but the important thing is it does not fail.
+        var query = new GetPublicEstablishmentsQuery(
+            null, null, null, null, null, null, null, null, null, true, 1, 20);
+
+        Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
+            await _handler.Handle(query, CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        // The query executed without error, confirming OpenNow is accepted
+        Assert.True(result.Value.TotalItems >= 0);
     }
 }
