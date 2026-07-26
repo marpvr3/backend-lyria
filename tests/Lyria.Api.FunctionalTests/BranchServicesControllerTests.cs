@@ -35,13 +35,13 @@ public class BranchServicesControllerTests
             new EstablishmentBranchId(BranchIdGuid), establishment.Id,
             "Sede Palermo", "Costa Rica 5865",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
 
         var inactiveBranch = EstablishmentBranch.Create(
             new EstablishmentBranchId(InactiveBranchIdGuid), establishment.Id,
             "Sede Inactiva", "Calle Falsa 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         inactiveBranch.Deactivate();
 
         var activeService = Service.Create(

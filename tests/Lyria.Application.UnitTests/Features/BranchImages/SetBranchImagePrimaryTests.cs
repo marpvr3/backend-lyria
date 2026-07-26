@@ -26,7 +26,7 @@ public sealed class SetBranchImagePrimaryTests
             EstablishmentId.New(),
             "Sede Test", "Calle Test 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         _branchRepository.Seed(branch);
 
         var image = BranchImage.Create(
@@ -74,7 +74,7 @@ public sealed class SetBranchImagePrimaryTests
             branchIdTyped, EstablishmentId.New(),
             "Sede Test", "Calle Test 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         _branchRepository.Seed(branch);
 
         var primaryImage = BranchImage.Create(
@@ -132,7 +132,7 @@ public sealed class SetBranchImagePrimaryTests
             EstablishmentId.New(),
             "Sede Test", "Calle Test 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         _branchRepository.Seed(branch);
 
         var command = new SetBranchImagePrimaryCommand(branchId, Guid.NewGuid());
@@ -154,7 +154,7 @@ public sealed class SetBranchImagePrimaryTests
             EstablishmentId.New(),
             "Otra Sede", "Otra Calle 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         _branchRepository.Seed(otherBranch);
 
         var command = new SetBranchImagePrimaryCommand(otherBranchId, image.Id.Value);

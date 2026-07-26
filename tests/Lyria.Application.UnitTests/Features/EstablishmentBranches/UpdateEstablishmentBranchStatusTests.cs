@@ -66,7 +66,7 @@ public sealed class UpdateEstablishmentBranchStatusTests
             EstablishmentId.New(),
             "Sede Central",
             "Costa Rica 5865",
-            null, null, null, null, null, null, null, null, null, null, null, null);
+            null, null, null, null, null, null, null, null, null, null, null, null, "America/Argentina/Buenos_Aires");
         _repository.Seed(branch);
         return branch;
     }

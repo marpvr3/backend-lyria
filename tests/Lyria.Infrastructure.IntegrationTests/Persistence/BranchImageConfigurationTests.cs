@@ -269,7 +269,7 @@ public sealed class BranchImageConfigurationTests : IDisposable
             branchId, establishment.Id,
             "Sede Test", "Calle Test 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
 
         var image = BranchImage.Create(
             BranchImageId.New(), branchId,
@@ -315,7 +315,7 @@ public sealed class BranchImageConfigurationTests : IDisposable
             branchId, establishment.Id,
             "Sede Test", "Calle Test 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
 
         var img1 = BranchImage.Create(
             BranchImageId.New(), branchId,
@@ -364,7 +364,7 @@ public sealed class BranchImageConfigurationTests : IDisposable
             branchId, establishment.Id,
             "Sede Test", "Calle Test 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
 
         var img1 = BranchImage.Create(
             BranchImageId.New(), branchId,
@@ -426,7 +426,7 @@ public sealed class BranchImageConfigurationTests : IDisposable
             branchId, establishment.Id,
             "Sede Test", "Calle Test 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
 
         var image = BranchImage.Create(
             BranchImageId.New(), branchId,
@@ -471,7 +471,7 @@ public sealed class BranchImageConfigurationTests : IDisposable
             branchId, establishment.Id,
             "Sede Test", "Calle Test 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
 
         var img1 = BranchImage.Create(
             BranchImageId.New(), branchId,
@@ -533,7 +533,7 @@ public sealed class BranchImageConfigurationTests : IDisposable
             branchId, establishment.Id,
             "Sede Test", "Calle Test 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
 
         var image = BranchImage.Create(
             BranchImageId.New(), branchId,
@@ -572,7 +572,7 @@ public sealed class BranchImageConfigurationTests : IDisposable
             branchId, establishment.Id,
             "Sede Test", "Calle Test 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
 
         var image = BranchImage.Create(
             BranchImageId.New(), branchId,

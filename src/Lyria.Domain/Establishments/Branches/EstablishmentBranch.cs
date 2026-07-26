@@ -20,6 +20,7 @@ public sealed partial class EstablishmentBranch : Entity<EstablishmentBranchId>,
     public const int PhoneMaxLength = 30;
     public const int WhatsAppMaxLength = 30;
     public const int EmailMaxLength = 254;
+    public const int TimeZoneIdMaxLength = 100;
 
     public EstablishmentId EstablishmentId { get; private set; }
     public string Name { get; private set; } = null!;
@@ -36,6 +37,7 @@ public sealed partial class EstablishmentBranch : Entity<EstablishmentBranchId>,
     public string? Phone { get; private set; }
     public string? WhatsApp { get; private set; }
     public string? Email { get; private set; }
+    public string TimeZoneId { get; private set; } = null!;
     public decimal RatingAverage { get; private set; }
     public int TotalReviews { get; private set; }
     public bool IsActive { get; private set; }
@@ -65,7 +67,8 @@ public sealed partial class EstablishmentBranch : Entity<EstablishmentBranchId>,
         decimal? longitude,
         string? phone,
         string? whatsApp,
-        string? email)
+        string? email,
+        string timeZoneId)
         : base(id)
     {
         EstablishmentId = establishmentId;
@@ -83,6 +86,7 @@ public sealed partial class EstablishmentBranch : Entity<EstablishmentBranchId>,
         Phone = phone;
         WhatsApp = whatsApp;
         Email = email;
+        TimeZoneId = timeZoneId;
         RatingAverage = 0;
         TotalReviews = 0;
         IsActive = true;
@@ -104,7 +108,8 @@ public sealed partial class EstablishmentBranch : Entity<EstablishmentBranchId>,
         decimal? longitude,
         string? phone,
         string? whatsApp,
-        string? email)
+        string? email,
+        string timeZoneId)
     {
         ValidateEstablishmentId(establishmentId);
 
@@ -146,6 +151,9 @@ public sealed partial class EstablishmentBranch : Entity<EstablishmentBranchId>,
         string? normalizedEmail = NormalizeOptionalString(email);
         ValidateEmail(normalizedEmail);
 
+        string normalizedTimeZoneId = NormalizeTimeZoneId(timeZoneId);
+        ValidateTimeZoneId(normalizedTimeZoneId);
+
         return new EstablishmentBranch(
             id, establishmentId,
             normalizedName, normalizedStreet,
@@ -154,7 +162,8 @@ public sealed partial class EstablishmentBranch : Entity<EstablishmentBranchId>,
             normalizedProvince, normalizedPostalCode,
             normalizedCountry,
             latitude, longitude,
-            normalizedPhone, normalizedWhatsApp, normalizedEmail);
+            normalizedPhone, normalizedWhatsApp, normalizedEmail,
+            normalizedTimeZoneId);
     }
 
     public void UpdateDetails(
@@ -225,6 +234,13 @@ public sealed partial class EstablishmentBranch : Entity<EstablishmentBranchId>,
         Phone = normalizedPhone;
         WhatsApp = normalizedWhatsApp;
         Email = normalizedEmail;
+    }
+
+    public void UpdateTimeZoneId(string timeZoneId)
+    {
+        string normalizedTimeZoneId = NormalizeTimeZoneId(timeZoneId);
+        ValidateTimeZoneId(normalizedTimeZoneId);
+        TimeZoneId = normalizedTimeZoneId;
     }
 
     public void Activate()
@@ -463,6 +479,30 @@ public sealed partial class EstablishmentBranch : Entity<EstablishmentBranchId>,
         {
             throw new EstablishmentBranchException(
                 "El correo electrónico no tiene un formato válido.");
+        }
+    }
+
+    public static string NormalizeTimeZoneId(string timeZoneId)
+    {
+        if (string.IsNullOrWhiteSpace(timeZoneId))
+        {
+            return string.Empty;
+        }
+
+        return timeZoneId.Trim();
+    }
+
+    private static void ValidateTimeZoneId(string timeZoneId)
+    {
+        if (string.IsNullOrEmpty(timeZoneId))
+        {
+            throw new EstablishmentBranchException("La zona horaria de la sede es obligatoria.");
+        }
+
+        if (timeZoneId.Length > TimeZoneIdMaxLength)
+        {
+            throw new EstablishmentBranchException(
+                $"La zona horaria no puede superar los {TimeZoneIdMaxLength} caracteres.");
         }
     }
 

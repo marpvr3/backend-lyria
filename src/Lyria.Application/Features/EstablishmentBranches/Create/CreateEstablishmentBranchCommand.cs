@@ -18,4 +18,5 @@ public sealed record CreateEstablishmentBranchCommand(
     decimal? Longitude,
     string? Phone,
     string? WhatsApp,
-    string? Email) : ICommand<EstablishmentBranchId>;
+    string? Email,
+    string? TimeZoneId) : ICommand<EstablishmentBranchId>;

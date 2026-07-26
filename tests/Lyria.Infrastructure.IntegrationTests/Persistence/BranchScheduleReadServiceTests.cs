@@ -26,7 +26,7 @@ public sealed class BranchScheduleReadServiceTests : IDisposable
             EstablishmentBranchId.New(), establishment.Id,
             "Sede Central", "Costa Rica 5865",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         context.Set<EstablishmentBranch>().Add(branch);
 
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);

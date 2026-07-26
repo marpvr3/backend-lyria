@@ -30,7 +30,7 @@ public sealed class EstablishmentBranchCreateTests
             id ?? DefaultId, establishmentId ?? DefaultEstablishmentId,
             name, street, number, addressComplement,
             neighborhood, city, province, postalCode, country,
-            latitude, longitude, phone, whatsApp, email);
+            latitude, longitude, phone, whatsApp, email, "America/Argentina/Buenos_Aires");
 
     [Fact]
     public void Create_WithValidData_CreatesEstablishmentBranch()

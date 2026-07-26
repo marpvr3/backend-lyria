@@ -27,13 +27,13 @@ public sealed class ListEstablishmentBranchesTests
             Guid.NewGuid(), EstablishmentGuid, "Sede Palermo", "Costa Rica 5865",
             null, null, "Palermo", "Buenos Aires", "Buenos Aires", null, "Argentina",
             "Costa Rica 5865, Palermo, Buenos Aires, Buenos Aires, Argentina",
-            null, null, null, null, null, 0m, 0, true,
+            null, null, null, null, null, 0m, 0, true, "America/Argentina/Buenos_Aires",
             new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), null));
         _readService.Seed(new EstablishmentBranchResponse(
             Guid.NewGuid(), EstablishmentGuid, "Sede Recoleta", "Av. Santa Fe 1234",
             null, null, "Recoleta", "Buenos Aires", "Buenos Aires", null, "Argentina",
             "Av. Santa Fe 1234, Recoleta, Buenos Aires, Buenos Aires, Argentina",
-            null, null, null, null, null, 0m, 0, false,
+            null, null, null, null, null, 0m, 0, false, "America/Argentina/Buenos_Aires",
             new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc), null));
 
         _handler = new ListEstablishmentBranchesQueryHandler(_readService, _establishmentReadService);

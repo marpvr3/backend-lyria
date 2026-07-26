@@ -30,7 +30,7 @@ public sealed class AssignServiceToBranchTests
             establishment.Id,
             "Sede Palermo", "Costa Rica 5865",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         _branchRepository.Seed(_activeBranch);
 
         _activeService = Service.Create(ServiceId.New(), "Delivery", "Entrega a domicilio.", null);

@@ -28,4 +28,9 @@ public static class EstablishmentBranchErrors
         Error.Validation(
             "Establishment.Inactive",
             $"El establecimiento con ID '{id}' no está activo.");
+
+    public static Error InvalidTimeZone(string timeZoneId) =>
+        Error.Validation(
+            "EstablishmentBranch.InvalidTimeZone",
+            $"La zona horaria '{timeZoneId}' no es válida.");
 }

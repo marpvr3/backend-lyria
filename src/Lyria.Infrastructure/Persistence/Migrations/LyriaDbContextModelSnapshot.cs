@@ -141,6 +141,68 @@ namespace Lyria.Infrastructure.Persistence.Migrations
                     b.ToTable("HorariosSede", (string)null);
                 });
 
+            modelBuilder.Entity("Lyria.Domain.Establishments.Branches.BranchSpecialSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("HorarioEspecialSedeId");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("SedeId");
+
+                    b.Property<TimeOnly?>("ClosingTime")
+                        .HasColumnType("time")
+                        .HasColumnName("HoraCierre");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("FechaCreacionUtc");
+
+                    b.Property<bool>("CrossesMidnight")
+                        .HasColumnType("bit")
+                        .HasColumnName("CruzaMedianoche");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("Fecha");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("EsActivo");
+
+                    b.Property<bool>("IsClosed")
+                        .HasColumnType("bit")
+                        .HasColumnName("Cerrado");
+
+                    b.Property<TimeOnly?>("OpeningTime")
+                        .HasColumnType("time")
+                        .HasColumnName("HoraApertura");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("Motivo");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("FechaActualizacionUtc");
+
+                    b.HasKey("Id")
+                        .HasName("PK_HorariosEspecialesSede");
+
+                    b.HasIndex("BranchId")
+                        .HasDatabaseName("IX_HorariosEspecialesSede_SedeId");
+
+                    b.HasIndex("BranchId", "Date")
+                        .HasDatabaseName("IX_HorariosEspecialesSede_SedeId_Fecha");
+
+                    b.HasIndex("BranchId", "Date", "IsActive")
+                        .HasDatabaseName("IX_HorariosEspecialesSede_SedeId_Fecha_EsActivo");
+
+                    b.ToTable("HorariosEspecialesSede", (string)null);
+                });
+
             modelBuilder.Entity("Lyria.Domain.Establishments.Branches.EstablishmentBranch", b =>
                 {
                     b.Property<Guid>("Id")
@@ -237,6 +299,12 @@ namespace Lyria.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2")
                         .HasColumnName("FechaActualizacion");
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("ZonaHoraria");
 
                     b.Property<string>("WhatsApp")
                         .HasMaxLength(30)
@@ -624,6 +692,16 @@ namespace Lyria.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("FK_HorariosSede_Sedes_SedeId");
+                });
+
+            modelBuilder.Entity("Lyria.Domain.Establishments.Branches.BranchSpecialSchedule", b =>
+                {
+                    b.HasOne("Lyria.Domain.Establishments.Branches.EstablishmentBranch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_HorariosEspecialesSede_Sedes_SedeId");
                 });
 
             modelBuilder.Entity("Lyria.Domain.Establishments.Branches.EstablishmentBranch", b =>

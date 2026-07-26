@@ -41,6 +41,7 @@ internal sealed class EstablishmentBranchReadService(LyriaDbContext dbContext)
                 e.RatingAverage,
                 e.TotalReviews,
                 e.IsActive,
+                e.TimeZoneId,
                 e.CreatedAtUtc,
                 e.UpdatedAtUtc))
             .FirstOrDefaultAsync(cancellationToken);

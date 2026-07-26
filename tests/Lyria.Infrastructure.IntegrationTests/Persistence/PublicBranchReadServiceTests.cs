@@ -62,7 +62,7 @@ public sealed class PublicBranchReadServiceTests : IDisposable
         var id = EstablishmentBranchId.New();
         var actualName = name ?? $"Sede-{id.Value:N}";
         var branch = EstablishmentBranch.Create(
-            id, establishmentId, actualName, "Calle 1", null, null, null, "Bogota", "Cundinamarca", null, "Colombia", null, null, null, null, null);
+            id, establishmentId, actualName, "Calle 1", null, null, null, "Bogota", "Cundinamarca", null, "Colombia", null, null, null, null, null, "America/Argentina/Buenos_Aires");
         if (!isActive)
         {
             branch.Deactivate();

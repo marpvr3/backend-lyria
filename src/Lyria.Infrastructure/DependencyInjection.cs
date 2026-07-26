@@ -1,7 +1,9 @@
 using Lyria.Application.Abstractions.Persistence;
+using Lyria.Application.Abstractions.Services;
 using Lyria.Infrastructure.Persistence;
 using Lyria.Infrastructure.Persistence.ReadServices;
 using Lyria.Infrastructure.Persistence.Repositories;
+using Lyria.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,9 +55,16 @@ public static class DependencyInjection
         services.AddScoped<IBranchImageRepository, BranchImageRepository>();
         services.AddScoped<IBranchImageReadService, BranchImageReadService>();
 
+        services.AddScoped<IBranchSpecialScheduleRepository, BranchSpecialScheduleRepository>();
+        services.AddScoped<IBranchSpecialScheduleReadService, BranchSpecialScheduleReadService>();
+        services.AddScoped<IBranchAvailabilityReadService, BranchAvailabilityReadService>();
+
         services.AddScoped<IPublicEstablishmentReadService, PublicEstablishmentReadService>();
         services.AddScoped<IPublicBranchReadService, PublicBranchReadService>();
         services.AddScoped<IPublicCatalogReadService, PublicCatalogReadService>();
+
+        services.AddSingleton<ITimeZoneService, TimeZoneService>();
+        services.AddSingleton<IBranchTimeZoneDefaults, BranchTimeZoneDefaults>();
 
         return services;
     }

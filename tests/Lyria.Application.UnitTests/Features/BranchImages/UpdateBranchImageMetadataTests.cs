@@ -26,7 +26,7 @@ public sealed class UpdateBranchImageMetadataTests
             EstablishmentId.New(),
             "Sede Test", "Calle Test 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         _branchRepository.Seed(branch);
 
         var image = BranchImage.Create(
@@ -67,7 +67,7 @@ public sealed class UpdateBranchImageMetadataTests
             EstablishmentId.New(),
             "Sede Test", "Calle Test 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         _branchRepository.Seed(branch);
 
         var command = new UpdateBranchImageMetadataCommand(
@@ -92,7 +92,7 @@ public sealed class UpdateBranchImageMetadataTests
             EstablishmentId.New(),
             "Otra Sede", "Otra Calle 123",
             null, null, null, null, null, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, "America/Argentina/Buenos_Aires");
         _branchRepository.Seed(otherBranch);
 
         var command = new UpdateBranchImageMetadataCommand(

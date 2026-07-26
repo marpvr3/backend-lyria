@@ -1,4 +1,5 @@
 using Lyria.Application;
+using Lyria.Application.Features.BranchSpecialSchedules;
 using Lyria.Infrastructure;
 using Microsoft.OpenApi;
 
@@ -10,6 +11,11 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddOptions<BranchTimeZoneOptions>()
+            .Bind(configuration.GetSection(BranchTimeZoneOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         services.AddApplication();
         services.AddInfrastructure(configuration);
         services.AddMediator(options =>

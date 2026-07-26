@@ -46,7 +46,7 @@ public class EstablishmentBranchesControllerTests
             "Calle 10", "5-20", null, "Centro", "Bogotá", "Cundinamarca",
             "110111", "Colombia", "Calle 10 #5-20, Centro, Bogotá",
             4.6097m, -74.0817m, "+57 1 234 5678", "+57 300 123 4567",
-            "sede@letitv.com", 4.5m, 12, true,
+            "sede@letitv.com", 4.5m, 12, true, "America/Argentina/Buenos_Aires",
             new DateTime(2026, 7, 15, 5, 0, 0, DateTimeKind.Utc), null));
 
         // Seed a domain branch for update/status tests
@@ -55,7 +55,7 @@ public class EstablishmentBranchesControllerTests
             branchId, establishmentId, "Sede Principal",
             "Calle 10", "5-20", null, "Centro", "Bogotá", "Cundinamarca",
             "110111", "Colombia", 4.6097m, -74.0817m,
-            "+57 1 234 5678", "+57 300 123 4567", "sede@letitv.com");
+            "+57 1 234 5678", "+57 300 123 4567", "sede@letitv.com", "America/Argentina/Buenos_Aires");
         _fakeBranchRepository.Seed(branch);
 
         WebApplicationFactory<Program> configuredFactory = factory.WithWebHostBuilder(builder =>
