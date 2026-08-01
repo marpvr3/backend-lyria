@@ -658,6 +658,26 @@ public class LayerDependencyTests
     }
 
     [Fact]
+    public void PublicBranchAvailabilityResponse_IsInApplicationLayer()
+    {
+        var type = ApplicationAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "PublicBranchAvailabilityResponse");
+
+        Assert.NotNull(type);
+        Assert.StartsWith("Lyria.Application", type.Namespace!);
+    }
+
+    [Fact]
+    public void BranchOpenStatusNames_IsInApplicationLayer()
+    {
+        var type = ApplicationAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "BranchOpenStatusNames");
+
+        Assert.NotNull(type);
+        Assert.StartsWith("Lyria.Application", type.Namespace!);
+    }
+
+    [Fact]
     public void BranchAvailabilityContext_IsInApplicationLayer()
     {
         var type = ApplicationAssembly.GetTypes()
@@ -674,6 +694,21 @@ public class LayerDependencyTests
         var contextType = domainTypes.FirstOrDefault(t => t.Name == "BranchAvailabilityContext");
 
         Assert.Null(contextType);
+    }
+
+    [Fact]
+    public void PublicEstablishmentListItemResponse_HasOpenBranchCountProperty()
+    {
+        var type = ApplicationAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "PublicEstablishmentListItemResponse");
+
+        Assert.NotNull(type);
+
+        var openBranchCountProp = type.GetProperty("OpenBranchCount");
+        Assert.NotNull(openBranchCountProp);
+
+        var hasOpenBranchProp = type.GetProperty("HasOpenBranch");
+        Assert.NotNull(hasOpenBranchProp);
     }
 
     // --- No EF InMemory ---

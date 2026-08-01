@@ -12,7 +12,7 @@ public sealed class GetPublicEstablishmentsValidatorTests
     public void Validator_PageLessThan1_HasError()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 0, 20);
+            null, null, null, null, null, null, null, null, null, null, 0, 20);
 
         var result = _validator.TestValidate(query);
 
@@ -23,7 +23,7 @@ public sealed class GetPublicEstablishmentsValidatorTests
     public void Validator_PageSizeLessThan1_HasError()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 1, 0);
+            null, null, null, null, null, null, null, null, null, null, 1, 0);
 
         var result = _validator.TestValidate(query);
 
@@ -34,7 +34,7 @@ public sealed class GetPublicEstablishmentsValidatorTests
     public void Validator_PageSizeGreaterThan100_HasError()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 1, 101);
+            null, null, null, null, null, null, null, null, null, null, 1, 101);
 
         var result = _validator.TestValidate(query);
 
@@ -45,7 +45,7 @@ public sealed class GetPublicEstablishmentsValidatorTests
     public void Validator_InvalidSortBy_HasError()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 1, 20, "invalid");
+            null, null, null, null, null, null, null, null, null, null, 1, 20, "invalid");
 
         var result = _validator.TestValidate(query);
 
@@ -56,7 +56,7 @@ public sealed class GetPublicEstablishmentsValidatorTests
     public void Validator_InvalidSortDirection_HasError()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 1, 20, "name", "invalid");
+            null, null, null, null, null, null, null, null, null, null, 1, 20, "name", "invalid");
 
         var result = _validator.TestValidate(query);
 
@@ -67,7 +67,7 @@ public sealed class GetPublicEstablishmentsValidatorTests
     public void Validator_ValidQuery_NoErrors()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 1, 20, "name", "asc");
+            null, null, null, null, null, null, null, null, null, null, 1, 20, "name", "asc");
 
         var result = _validator.TestValidate(query);
 
@@ -78,7 +78,7 @@ public sealed class GetPublicEstablishmentsValidatorTests
     public void Validator_SortByNewest_NoError()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 1, 20, "newest", "desc");
+            null, null, null, null, null, null, null, null, null, null, 1, 20, "newest", "desc");
 
         var result = _validator.TestValidate(query);
 
@@ -89,7 +89,7 @@ public sealed class GetPublicEstablishmentsValidatorTests
     public void Validator_SortByBranchCount_NoError()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, null, null, 1, 20, "branchCount", "desc");
+            null, null, null, null, null, null, null, null, null, null, 1, 20, "branchCount", "desc");
 
         var result = _validator.TestValidate(query);
 
@@ -100,7 +100,7 @@ public sealed class GetPublicEstablishmentsValidatorTests
     public void Validator_InvalidComplianceLevel_HasError()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, 99, null, 1, 20);
+            null, null, null, null, null, null, null, 99, null, null, 1, 20);
 
         var result = _validator.TestValidate(query);
 
@@ -111,7 +111,7 @@ public sealed class GetPublicEstablishmentsValidatorTests
     public void Validator_ValidComplianceLevel_NoError()
     {
         var query = new GetPublicEstablishmentsQuery(
-            null, null, null, null, null, null, null, 1, null, 1, 20);
+            null, null, null, null, null, null, null, 1, null, null, 1, 20);
 
         var result = _validator.TestValidate(query);
 

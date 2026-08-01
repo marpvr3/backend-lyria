@@ -165,7 +165,8 @@ internal sealed class PublicBranchReadService(LyriaDbContext dbContext)
             services,
             restrictionResponses,
             schedules,
-            images);
+            images,
+            PublicBranchAvailabilityResponse.Default);
 
         var establishmentResponse = new PublicBranchEstablishmentResponse(
             branchData.EstablishmentId.Value,

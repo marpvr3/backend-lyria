@@ -1,3 +1,5 @@
+using Lyria.Application.Abstractions.Persistence;
+using Lyria.Application.Abstractions.Services;
 using Lyria.Application.Common;
 using Lyria.Application.Features.PublicCatalog;
 using Lyria.Domain.Establishments;
@@ -26,12 +28,13 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         Guid? restrictionId = null,
         int? complianceLevel = null,
         bool? isCertified = null,
+        bool? openNow = null,
         int page = 1,
         int pageSize = 20,
         string sortBy = "name",
         string sortDirection = "asc") =>
         new(search, categoryId, city, province, country, serviceId, restrictionId,
-            complianceLevel, isCertified, page, pageSize, sortBy, sortDirection);
+            complianceLevel, isCertified, openNow, page, pageSize, sortBy, sortDirection);
 
     #region Seed helpers
 
@@ -238,7 +241,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranch(writeCtx, active2Id);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(DefaultFilter(), CancellationToken.None);
 
@@ -255,7 +258,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranch(writeCtx, estId);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(DefaultFilter(), CancellationToken.None);
 
@@ -271,7 +274,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         // no branch seeded
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(DefaultFilter(), CancellationToken.None);
 
@@ -287,7 +290,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         var (_, _, _) = await SeedFullEstablishment(writeCtx, "OtroLugar", $"otro-lugar-{unique}");
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(DefaultFilter(search: $"BuscaNombre{unique}"), CancellationToken.None);
 
@@ -305,7 +308,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranch(writeCtx, estId);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(DefaultFilter(search: $"DescripcionUnica{unique}"), CancellationToken.None);
 
@@ -325,7 +328,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranch(writeCtx, est2);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(DefaultFilter(categoryId: cat1.Value), CancellationToken.None);
 
@@ -342,7 +345,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         var (_, _, _) = await SeedFullEstablishment(writeCtx, $"EnCali{unique}", $"en-cali-{unique}", city: $"Cali{unique}");
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(DefaultFilter(city: $"Medellin{unique}"), CancellationToken.None);
 
@@ -359,7 +362,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         var (_, _, _) = await SeedFullEstablishment(writeCtx, $"EnValle{unique}", $"en-valle-{unique}", province: $"Valle{unique}");
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(DefaultFilter(province: $"Antioquia{unique}"), CancellationToken.None);
 
@@ -376,7 +379,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         var (_, _, _) = await SeedFullEstablishment(writeCtx, $"EnEcuador{unique}", $"en-ecuador-{unique}", country: $"Ecuador{unique}");
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(DefaultFilter(country: $"Colombia{unique}"), CancellationToken.None);
 
@@ -396,7 +399,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         var (_, _, _) = await SeedFullEstablishment(writeCtx, $"SinServicio{unique}", $"sin-servicio-{unique}");
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(DefaultFilter(serviceId: serviceId.Value), CancellationToken.None);
 
@@ -416,7 +419,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         var (_, _, _) = await SeedFullEstablishment(writeCtx, $"SinRestr{unique}", $"sin-restr-{unique}");
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(DefaultFilter(restrictionId: restrictionId.Value), CancellationToken.None);
 
@@ -438,7 +441,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranchRestriction(writeCtx, branchId2, restrictionId2, RestrictionComplianceLevel.Partial);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(DefaultFilter(complianceLevel: (int)RestrictionComplianceLevel.Guaranteed), CancellationToken.None);
 
@@ -460,7 +463,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranchRestriction(writeCtx, branchId2, restrictionId2, isCertified: false);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(DefaultFilter(isCertified: true), CancellationToken.None);
 
@@ -482,7 +485,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranchRestriction(writeCtx, branchId, restrictionId);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(
             DefaultFilter(serviceId: serviceId.Value, restrictionId: restrictionId.Value), CancellationToken.None);
@@ -508,7 +511,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranchRestriction(writeCtx, branch2, restrictionId);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(
             DefaultFilter(serviceId: serviceId.Value, restrictionId: restrictionId.Value), CancellationToken.None);
@@ -534,7 +537,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranch(writeCtx, est2, city: $"OtraCiudad{unique}", country: $"OtroPais{unique}");
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(
             DefaultFilter(
@@ -562,7 +565,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranch(writeCtx, estB);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(
             DefaultFilter(search: unique, sortBy: "name", sortDirection: "asc"), CancellationToken.None);
@@ -586,7 +589,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranch(writeCtx, estB);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(
             DefaultFilter(search: unique, sortBy: "name", sortDirection: "desc"), CancellationToken.None);
@@ -608,7 +611,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranch(writeCtx, est2);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         // Default newest sort is desc (newest first), but the implementation uses the sortDirection param
         var result = await sut.ListAsync(
@@ -640,7 +643,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranch(writeCtx, est2);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(
             DefaultFilter(search: unique, sortBy: "branchcount", sortDirection: "desc"), CancellationToken.None);
@@ -665,7 +668,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         }
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var page1 = await sut.ListAsync(
             DefaultFilter(search: $"Pag{unique}", page: 1, pageSize: 2), CancellationToken.None);
@@ -691,7 +694,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
     public async Task ListAsync_ReturnsEmpty_WhenNoData()
     {
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(
             DefaultFilter(search: "NONEXISTENT" + Guid.NewGuid()), CancellationToken.None);
@@ -709,7 +712,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
             writeCtx, $"DtoTest{unique}", $"dto-test-{unique}", description: "Una descripcion");
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.ListAsync(DefaultFilter(search: $"DtoTest{unique}"), CancellationToken.None);
 
@@ -731,7 +734,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         var (_, _, _) = await SeedFullEstablishment(writeCtx, "Tracked", "tracked");
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         await sut.ListAsync(DefaultFilter(search: "Tracked"), CancellationToken.None);
 
@@ -748,7 +751,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         var (_, _, branchId) = await SeedFullEstablishment(writeCtx, $"BySlug{unique}", $"by-slug-{unique}");
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync($"by-slug-{unique}", CancellationToken.None);
 
@@ -762,7 +765,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
     public async Task GetBySlugAsync_ReturnsNull_ForNonExistentSlug()
     {
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync("nonexistent-slug-xyz", CancellationToken.None);
 
@@ -779,7 +782,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranch(writeCtx, estId);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync($"inact-est-{unique}", CancellationToken.None);
 
@@ -796,7 +799,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranch(writeCtx, estId);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync($"est-cat-inact-{unique}", CancellationToken.None);
 
@@ -813,7 +816,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranch(writeCtx, estId, isActive: false);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync($"no-branch-{unique}", CancellationToken.None);
 
@@ -831,7 +834,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         var inactiveBranch = await SeedBranch(writeCtx, estId, "SedeInactiva", isActive: false);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync($"ex-branch-{unique}", CancellationToken.None);
 
@@ -852,7 +855,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranchService(writeCtx, branchId, inactiveService);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync($"ex-srv-{unique}", CancellationToken.None);
 
@@ -874,7 +877,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranchService(writeCtx, branchId, service2, isActive: false);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync($"ex-bs-srv-{unique}", CancellationToken.None);
 
@@ -894,7 +897,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranchService(writeCtx, branchId, service, isAvailable: false);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync($"unav-srv-{unique}", CancellationToken.None);
 
@@ -916,7 +919,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranchRestriction(writeCtx, branchId, inactiveRestr);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync($"ex-restr-{unique}", CancellationToken.None);
 
@@ -938,7 +941,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranchRestriction(writeCtx, branchId, restr2, isActive: false);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync($"ex-br-restr-{unique}", CancellationToken.None);
 
@@ -958,7 +961,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedSchedule(writeCtx, branchId, WeekDay.Tuesday, isActive: false);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync($"ex-sched-{unique}", CancellationToken.None);
 
@@ -978,7 +981,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedImage(writeCtx, branchId, isPrimary: false, isActive: false);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync($"ex-img-{unique}", CancellationToken.None);
 
@@ -1000,7 +1003,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedBranch(writeCtx, estId, "Bravo");
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync($"ord-branch-{unique}", CancellationToken.None);
 
@@ -1021,7 +1024,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         await SeedSchedule(writeCtx, branchId, WeekDay.Friday, new TimeOnly(10, 0), new TimeOnly(20, 0));
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync($"ord-sched-{unique}", CancellationToken.None);
 
@@ -1048,7 +1051,7 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         var img3 = await SeedImage(writeCtx, branchId, isPrimary: false, sortOrder: 1);
 
         await using var readCtx = _fixture.CreateContext();
-        var sut = new PublicEstablishmentReadService(readCtx);
+        var sut = CreateSut(readCtx);
 
         var result = await sut.GetBySlugAsync($"ord-img-{unique}", CancellationToken.None);
 
@@ -1063,5 +1066,426 @@ public sealed class PublicEstablishmentReadServiceTests : IDisposable
         Assert.Equal(img1.Value, images[2].Id);
     }
 
+    // ────────────────────────── OpenNow filter ──────────────────────────
+
+    [Fact]
+    public async Task ListAsync_OpenNowTrue_IncludesOnlyEstablishmentsWithOpenBranch()
+    {
+        await using var writeCtx = _fixture.CreateContext();
+
+        // Establishment with an open branch (Monday 08:00-17:00, eval at local 12:00)
+        var (_, openEstId, openBranchId) = await SeedFullEstablishment(writeCtx, "OpenEst", "open-est-1");
+        await SeedSchedule(writeCtx, openBranchId, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+
+        // Establishment with no schedule (closed)
+        var (_, closedEstId, _) = await SeedFullEstablishment(writeCtx, "ClosedEst", "closed-est-1");
+
+        await using var readCtx = _fixture.CreateContext();
+        var sut = CreateSutWithAvailability(readCtx);
+
+        // Monday 2026-07-27 15:00 UTC → 12:00 Buenos Aires
+        var evaluatedAt = new DateTimeOffset(2026, 7, 27, 15, 0, 0, TimeSpan.Zero);
+        var filter = FilterWithOpenNow(openNow: true, evaluatedAtUtc: evaluatedAt);
+
+        var result = await sut.ListAsync(filter, CancellationToken.None);
+
+        Assert.Single(result.Items);
+        Assert.Equal("OpenEst", result.Items[0].Name);
+    }
+
+    [Fact]
+    public async Task ListAsync_OpenNowFalse_IncludesOnlyEstablishmentsWithNoOpenBranch()
+    {
+        await using var writeCtx = _fixture.CreateContext();
+
+        var (_, openEstId, openBranchId) = await SeedFullEstablishment(writeCtx, "OpenEst2", "open-est-2");
+        await SeedSchedule(writeCtx, openBranchId, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+
+        var (_, closedEstId, _) = await SeedFullEstablishment(writeCtx, "ClosedEst2", "closed-est-2");
+
+        await using var readCtx = _fixture.CreateContext();
+        var sut = CreateSutWithAvailability(readCtx);
+
+        var evaluatedAt = new DateTimeOffset(2026, 7, 27, 15, 0, 0, TimeSpan.Zero);
+        var filter = FilterWithOpenNow(openNow: false, evaluatedAtUtc: evaluatedAt);
+
+        var result = await sut.ListAsync(filter, CancellationToken.None);
+
+        Assert.Single(result.Items);
+        Assert.Equal("ClosedEst2", result.Items[0].Name);
+    }
+
+    [Fact]
+    public async Task ListAsync_OpenNowNull_DoesNotFilter()
+    {
+        await using var writeCtx = _fixture.CreateContext();
+
+        var (_, _, openBranchId) = await SeedFullEstablishment(writeCtx, "OpenEst3", "open-est-3");
+        await SeedSchedule(writeCtx, openBranchId, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+
+        var (_, _, _) = await SeedFullEstablishment(writeCtx, "ClosedEst3", "closed-est-3");
+
+        await using var readCtx = _fixture.CreateContext();
+        var sut = CreateSutWithAvailability(readCtx);
+
+        var evaluatedAt = new DateTimeOffset(2026, 7, 27, 15, 0, 0, TimeSpan.Zero);
+        var filter = FilterWithOpenNow(openNow: null, evaluatedAtUtc: evaluatedAt);
+
+        var result = await sut.ListAsync(filter, CancellationToken.None);
+
+        Assert.True(result.Items.Count >= 2);
+        Assert.Contains(result.Items, i => i.Name == "OpenEst3");
+        Assert.Contains(result.Items, i => i.Name == "ClosedEst3");
+    }
+
+    [Fact]
+    public async Task ListAsync_OpenBranchCount_IsCorrect()
+    {
+        await using var writeCtx = _fixture.CreateContext();
+
+        var catId = await SeedCategory(writeCtx);
+        var estId = await SeedEstablishment(writeCtx, catId, "CountEst", "count-est");
+        var branchOpen = await SeedBranch(writeCtx, estId, "OpenBranch");
+        await SeedSchedule(writeCtx, branchOpen, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+        var branchClosed = await SeedBranch(writeCtx, estId, "ClosedBranch");
+        // No schedule for branchClosed
+
+        await using var readCtx = _fixture.CreateContext();
+        var sut = CreateSutWithAvailability(readCtx);
+
+        var evaluatedAt = new DateTimeOffset(2026, 7, 27, 15, 0, 0, TimeSpan.Zero);
+        var filter = FilterWithOpenNow(openNow: null, evaluatedAtUtc: evaluatedAt);
+
+        var result = await sut.ListAsync(filter, CancellationToken.None);
+
+        var item = Assert.Single(result.Items, i => i.Name == "CountEst");
+        Assert.Equal(1, item.OpenBranchCount);
+    }
+
+    [Fact]
+    public async Task ListAsync_HasOpenBranch_IsCorrect()
+    {
+        await using var writeCtx = _fixture.CreateContext();
+
+        var catId = await SeedCategory(writeCtx);
+        var estId = await SeedEstablishment(writeCtx, catId, "HasOpenEst", "has-open-est");
+        var branchOpen = await SeedBranch(writeCtx, estId, "OpenBranch2");
+        await SeedSchedule(writeCtx, branchOpen, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+        var branchClosed = await SeedBranch(writeCtx, estId, "ClosedBranch2");
+
+        await using var readCtx = _fixture.CreateContext();
+        var sut = CreateSutWithAvailability(readCtx);
+
+        var evaluatedAt = new DateTimeOffset(2026, 7, 27, 15, 0, 0, TimeSpan.Zero);
+        var filter = FilterWithOpenNow(openNow: null, evaluatedAtUtc: evaluatedAt);
+
+        var result = await sut.ListAsync(filter, CancellationToken.None);
+
+        var item = Assert.Single(result.Items, i => i.Name == "HasOpenEst");
+        Assert.True(item.HasOpenBranch);
+    }
+
+    [Fact]
+    public async Task ListAsync_OpenNowTrue_TotalItems_IsCorrect()
+    {
+        await using var writeCtx = _fixture.CreateContext();
+
+        // 2 open establishments
+        var (_, _, br1) = await SeedFullEstablishment(writeCtx, "TotalOpen1", "total-open-1");
+        await SeedSchedule(writeCtx, br1, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+        var (_, _, br2) = await SeedFullEstablishment(writeCtx, "TotalOpen2", "total-open-2");
+        await SeedSchedule(writeCtx, br2, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+
+        // 1 closed establishment
+        var (_, _, _) = await SeedFullEstablishment(writeCtx, "TotalClosed1", "total-closed-1");
+
+        await using var readCtx = _fixture.CreateContext();
+        var sut = CreateSutWithAvailability(readCtx);
+
+        var evaluatedAt = new DateTimeOffset(2026, 7, 27, 15, 0, 0, TimeSpan.Zero);
+        var filter = FilterWithOpenNow(openNow: true, evaluatedAtUtc: evaluatedAt);
+
+        var result = await sut.ListAsync(filter, CancellationToken.None);
+
+        Assert.Equal(2, result.TotalItems);
+    }
+
+    [Fact]
+    public async Task ListAsync_OpenNowFalse_TotalItems_IsCorrect()
+    {
+        await using var writeCtx = _fixture.CreateContext();
+
+        var (_, _, br1) = await SeedFullEstablishment(writeCtx, "TotalOpen3", "total-open-3");
+        await SeedSchedule(writeCtx, br1, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+        var (_, _, br2) = await SeedFullEstablishment(writeCtx, "TotalOpen4", "total-open-4");
+        await SeedSchedule(writeCtx, br2, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+
+        var (_, _, _) = await SeedFullEstablishment(writeCtx, "TotalClosed2", "total-closed-2");
+
+        await using var readCtx = _fixture.CreateContext();
+        var sut = CreateSutWithAvailability(readCtx);
+
+        var evaluatedAt = new DateTimeOffset(2026, 7, 27, 15, 0, 0, TimeSpan.Zero);
+        var filter = FilterWithOpenNow(openNow: false, evaluatedAtUtc: evaluatedAt);
+
+        var result = await sut.ListAsync(filter, CancellationToken.None);
+
+        Assert.Equal(1, result.TotalItems);
+    }
+
+    [Fact]
+    public async Task ListAsync_OpenNowTrue_TotalPages_IsCorrect()
+    {
+        await using var writeCtx = _fixture.CreateContext();
+
+        // 3 open establishments
+        var (_, _, brA) = await SeedFullEstablishment(writeCtx, "PageOpen1", "page-open-1");
+        await SeedSchedule(writeCtx, brA, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+        var (_, _, brB) = await SeedFullEstablishment(writeCtx, "PageOpen2", "page-open-2");
+        await SeedSchedule(writeCtx, brB, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+        var (_, _, brC) = await SeedFullEstablishment(writeCtx, "PageOpen3", "page-open-3");
+        await SeedSchedule(writeCtx, brC, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+
+        await using var readCtx = _fixture.CreateContext();
+        var sut = CreateSutWithAvailability(readCtx);
+
+        var evaluatedAt = new DateTimeOffset(2026, 7, 27, 15, 0, 0, TimeSpan.Zero);
+        var filter = FilterWithOpenNow(openNow: true, evaluatedAtUtc: evaluatedAt, pageSize: 2);
+
+        var result = await sut.ListAsync(filter, CancellationToken.None);
+
+        Assert.Equal(2, result.TotalPages);
+    }
+
+    [Fact]
+    public async Task ListAsync_OpenNow_PaginationAppliedAfterFilter()
+    {
+        await using var writeCtx = _fixture.CreateContext();
+
+        // A-Open, B-Closed, C-Open, D-Open
+        var (_, _, brA) = await SeedFullEstablishment(writeCtx, "A-Open", "a-open");
+        await SeedSchedule(writeCtx, brA, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+
+        var (_, _, _) = await SeedFullEstablishment(writeCtx, "B-Closed", "b-closed");
+
+        var (_, _, brC) = await SeedFullEstablishment(writeCtx, "C-Open", "c-open");
+        await SeedSchedule(writeCtx, brC, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+
+        var (_, _, brD) = await SeedFullEstablishment(writeCtx, "D-Open", "d-open");
+        await SeedSchedule(writeCtx, brD, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+
+        await using var readCtx = _fixture.CreateContext();
+        var sut = CreateSutWithAvailability(readCtx);
+
+        var evaluatedAt = new DateTimeOffset(2026, 7, 27, 15, 0, 0, TimeSpan.Zero);
+
+        // Page 1
+        var filterP1 = FilterWithOpenNow(openNow: true, evaluatedAtUtc: evaluatedAt, pageSize: 1, page: 1);
+        var resultP1 = await sut.ListAsync(filterP1, CancellationToken.None);
+
+        Assert.Single(resultP1.Items);
+        Assert.Equal("A-Open", resultP1.Items[0].Name);
+        Assert.Equal(3, resultP1.TotalItems);
+        Assert.Equal(3, resultP1.TotalPages);
+
+        // Page 2
+        var filterP2 = FilterWithOpenNow(openNow: true, evaluatedAtUtc: evaluatedAt, pageSize: 1, page: 2);
+        var resultP2 = await sut.ListAsync(filterP2, CancellationToken.None);
+
+        Assert.Single(resultP2.Items);
+        Assert.Equal("C-Open", resultP2.Items[0].Name);
+        Assert.Equal(3, resultP2.TotalItems);
+        Assert.Equal(3, resultP2.TotalPages);
+    }
+
+    [Fact]
+    public async Task ListAsync_OpenNowFalse_PaginationAppliedAfterFilter()
+    {
+        await using var writeCtx = _fixture.CreateContext();
+
+        // A-Open, B-Closed, C-Open, D-Closed
+        var (_, _, brA) = await SeedFullEstablishment(writeCtx, "A-OpenPF", "a-open-pf");
+        await SeedSchedule(writeCtx, brA, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+
+        var (_, _, _) = await SeedFullEstablishment(writeCtx, "B-ClosedPF", "b-closed-pf");
+
+        var (_, _, brC) = await SeedFullEstablishment(writeCtx, "C-OpenPF", "c-open-pf");
+        await SeedSchedule(writeCtx, brC, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+
+        var (_, _, _) = await SeedFullEstablishment(writeCtx, "D-ClosedPF", "d-closed-pf");
+
+        await using var readCtx = _fixture.CreateContext();
+        var sut = CreateSutWithAvailability(readCtx);
+        var evaluatedAt = new DateTimeOffset(2026, 7, 27, 15, 0, 0, TimeSpan.Zero);
+
+        // Page 1
+        var filterP1 = FilterWithOpenNow(openNow: false, evaluatedAtUtc: evaluatedAt, pageSize: 1, page: 1);
+        var resultP1 = await sut.ListAsync(filterP1, CancellationToken.None);
+
+        Assert.Single(resultP1.Items);
+        Assert.Equal("B-ClosedPF", resultP1.Items[0].Name);
+        Assert.Equal(2, resultP1.TotalItems);
+        Assert.Equal(2, resultP1.TotalPages);
+
+        // Page 2
+        var filterP2 = FilterWithOpenNow(openNow: false, evaluatedAtUtc: evaluatedAt, pageSize: 1, page: 2);
+        var resultP2 = await sut.ListAsync(filterP2, CancellationToken.None);
+
+        Assert.Single(resultP2.Items);
+        Assert.Equal("D-ClosedPF", resultP2.Items[0].Name);
+        Assert.Equal(2, resultP2.TotalItems);
+    }
+
+    [Fact]
+    public async Task ListAsync_OpenNow_WithServiceId_AND_Semantics()
+    {
+        await using var writeCtx = _fixture.CreateContext();
+
+        var serviceId = await SeedService(writeCtx, "WiFi");
+
+        // Open establishment WITH service
+        var (_, _, brWithSvc) = await SeedFullEstablishment(writeCtx, "OpenWithSvc", "open-with-svc");
+        await SeedSchedule(writeCtx, brWithSvc, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+        await SeedBranchService(writeCtx, brWithSvc, serviceId);
+
+        // Open establishment WITHOUT service
+        var (_, _, brNoSvc) = await SeedFullEstablishment(writeCtx, "OpenNoSvc", "open-no-svc");
+        await SeedSchedule(writeCtx, brNoSvc, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+
+        await using var readCtx = _fixture.CreateContext();
+        var sut = CreateSutWithAvailability(readCtx);
+
+        var evaluatedAt = new DateTimeOffset(2026, 7, 27, 15, 0, 0, TimeSpan.Zero);
+        var filter = FilterWithOpenNow(openNow: true, evaluatedAtUtc: evaluatedAt, serviceId: serviceId.Value);
+
+        var result = await sut.ListAsync(filter, CancellationToken.None);
+
+        Assert.Single(result.Items);
+        Assert.Equal("OpenWithSvc", result.Items[0].Name);
+    }
+
+    [Fact]
+    public async Task ListAsync_OpenNow_WithRestrictionId_AND_Semantics()
+    {
+        await using var writeCtx = _fixture.CreateContext();
+
+        var restrictionId = await SeedRestriction(writeCtx, "SinGluten");
+
+        // Open establishment WITH restriction
+        var (_, _, brWithRestr) = await SeedFullEstablishment(writeCtx, "OpenWithRestr", "open-with-restr");
+        await SeedSchedule(writeCtx, brWithRestr, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+        await SeedBranchRestriction(writeCtx, brWithRestr, restrictionId);
+
+        // Open establishment WITHOUT restriction
+        var (_, _, brNoRestr) = await SeedFullEstablishment(writeCtx, "OpenNoRestr", "open-no-restr");
+        await SeedSchedule(writeCtx, brNoRestr, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+
+        await using var readCtx = _fixture.CreateContext();
+        var sut = CreateSutWithAvailability(readCtx);
+
+        var evaluatedAt = new DateTimeOffset(2026, 7, 27, 15, 0, 0, TimeSpan.Zero);
+        var filter = FilterWithOpenNow(openNow: true, evaluatedAtUtc: evaluatedAt, restrictionId: restrictionId.Value);
+
+        var result = await sut.ListAsync(filter, CancellationToken.None);
+
+        Assert.Single(result.Items);
+        Assert.Equal("OpenWithRestr", result.Items[0].Name);
+    }
+
+    [Fact]
+    public async Task ListAsync_AsNoTracking_Maintained()
+    {
+        await using var writeCtx = _fixture.CreateContext();
+        var (_, _, branchId) = await SeedFullEstablishment(writeCtx, "TrackEst", "track-est");
+        await SeedSchedule(writeCtx, branchId, WeekDay.Monday, new TimeOnly(8, 0), new TimeOnly(17, 0));
+
+        await using var readCtx = _fixture.CreateContext();
+        var sut = CreateSutWithAvailability(readCtx);
+
+        var evaluatedAt = new DateTimeOffset(2026, 7, 27, 15, 0, 0, TimeSpan.Zero);
+        var filter = FilterWithOpenNow(openNow: true, evaluatedAtUtc: evaluatedAt);
+
+        await sut.ListAsync(filter, CancellationToken.None);
+
+        Assert.Empty(readCtx.ChangeTracker.Entries());
+    }
+
+    [Fact]
+    public async Task ListAsync_SQLite_InMemory_Compatible()
+    {
+        await using var readCtx = _fixture.CreateContext();
+        var sut = CreateSutWithAvailability(readCtx);
+
+        var evaluatedAt = new DateTimeOffset(2026, 7, 27, 15, 0, 0, TimeSpan.Zero);
+        var filter = FilterWithOpenNow(openNow: true, evaluatedAtUtc: evaluatedAt);
+
+        var result = await sut.ListAsync(filter, CancellationToken.None);
+
+        Assert.Empty(result.Items);
+        Assert.Equal(0, result.TotalItems);
+    }
+
     public void Dispose() => _fixture.Dispose();
+
+    private static PublicEstablishmentReadService CreateSut(LyriaDbContext readCtx)
+    {
+        var availabilityReadService = new StubBranchAvailabilityReadService();
+        var timeZoneService = new StubTimeZoneService();
+        return new PublicEstablishmentReadService(readCtx, availabilityReadService, timeZoneService);
+    }
+
+    private sealed class StubBranchAvailabilityReadService : IBranchAvailabilityReadService
+    {
+        public Task<BranchAvailabilityContext?> GetAvailabilityContextAsync(
+            EstablishmentBranchId branchId, DateOnly localDate, CancellationToken cancellationToken)
+            => Task.FromResult<BranchAvailabilityContext?>(null);
+
+        public Task<IReadOnlyDictionary<EstablishmentBranchId, BranchAvailabilityContext>>
+            GetAvailabilityContextsAsync(
+                IReadOnlyCollection<EstablishmentBranchId> branchIds,
+                DateTimeOffset evaluatedAtUtc,
+                ITimeZoneService timeZoneService,
+                CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyDictionary<EstablishmentBranchId, BranchAvailabilityContext>>(
+                new Dictionary<EstablishmentBranchId, BranchAvailabilityContext>());
+    }
+
+    private sealed class StubTimeZoneService : ITimeZoneService
+    {
+        public bool IsValid(string timeZoneId) => true;
+
+        public DateTime ConvertUtcToLocal(DateTimeOffset utcDateTime, string timeZoneId)
+            => utcDateTime.UtcDateTime;
+    }
+
+    private static PublicEstablishmentReadService CreateSutWithAvailability(LyriaDbContext readCtx)
+    {
+        var availabilityReadService = new BranchAvailabilityReadService(readCtx);
+        var timeZoneService = new RealTimeZoneService();
+        return new PublicEstablishmentReadService(readCtx, availabilityReadService, timeZoneService);
+    }
+
+    private static PublicEstablishmentListFilter FilterWithOpenNow(
+        bool? openNow,
+        DateTimeOffset evaluatedAtUtc,
+        int page = 1,
+        int pageSize = 20,
+        Guid? serviceId = null,
+        Guid? restrictionId = null) =>
+        new(null, null, null, null, null, serviceId, restrictionId, null, null, openNow, page, pageSize, "name", "asc", evaluatedAtUtc);
+
+    private sealed class RealTimeZoneService : ITimeZoneService
+    {
+        public bool IsValid(string timeZoneId)
+        {
+            try { TimeZoneInfo.FindSystemTimeZoneById(timeZoneId); return true; }
+            catch { return false; }
+        }
+
+        public DateTime ConvertUtcToLocal(DateTimeOffset utcDateTime, string timeZoneId)
+        {
+            var tz = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            return TimeZoneInfo.ConvertTime(utcDateTime, tz).DateTime;
+        }
+    }
 }

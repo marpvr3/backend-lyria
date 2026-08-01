@@ -183,6 +183,8 @@ internal sealed class FakePublicEstablishmentReadService : IPublicEstablishmentR
             seed.PrimaryImageUrl,
             seed.Category,
             seed.Branches.Count,
+            0,
+            false,
             cities,
             services,
             restrictions);

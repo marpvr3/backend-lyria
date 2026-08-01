@@ -12,6 +12,8 @@ public sealed record PublicEstablishmentListItemResponse(
     string? PrimaryImageUrl,
     PublicCategoryBriefResponse Category,
     int BranchCount,
+    int OpenBranchCount,
+    bool HasOpenBranch,
     IReadOnlyList<string> Cities,
     IReadOnlyList<PublicServiceBriefResponse> Services,
     IReadOnlyList<PublicRestrictionBriefResponse> Restrictions);

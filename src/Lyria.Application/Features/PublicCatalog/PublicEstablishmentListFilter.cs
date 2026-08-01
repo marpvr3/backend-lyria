@@ -13,7 +13,9 @@ public sealed record PublicEstablishmentListFilter(
     Guid? RestrictionId,
     int? ComplianceLevel,
     bool? IsCertified,
+    bool? OpenNow,
     int Page,
     int PageSize,
     string SortBy,
-    string SortDirection);
+    string SortDirection,
+    DateTimeOffset? EvaluatedAtUtc = null);

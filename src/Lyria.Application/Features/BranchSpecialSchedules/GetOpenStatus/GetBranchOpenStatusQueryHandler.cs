@@ -1,8 +1,8 @@
-using System.Globalization;
 using Lyria.Application.Abstractions.Messaging;
 using Lyria.Application.Abstractions.Persistence;
 using Lyria.Application.Abstractions.Services;
 using Lyria.Application.Common.Results;
+using Lyria.Application.Features.PublicCatalog;
 using Lyria.Domain.Establishments.Branches;
 
 namespace Lyria.Application.Features.BranchSpecialSchedules.GetOpenStatus;
@@ -62,36 +62,22 @@ public sealed class GetBranchOpenStatusQueryHandler(
             context.PreviousDaySchedule,
             context.CurrentDaySchedule);
 
-        string statusName = availability.Status switch
-        {
-            BranchOpenStatus.Open => "Abierto",
-            BranchOpenStatus.OpensLaterToday => "Abre más tarde",
-            BranchOpenStatus.Closed => "Cerrado",
-            BranchOpenStatus.NoSchedule => "Sin programación",
-            _ => "Desconocido"
-        };
-
-        string? opensAtLocal = availability.OpensAtLocal?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) is not null
-            ? localDate.ToDateTime(availability.OpensAtLocal.Value).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
-            : null;
-
-        string? closesAtLocal = availability.ClosesAtLocal is not null
-            ? localDate.ToDateTime(availability.ClosesAtLocal.Value).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
-            : null;
+        var availabilityResponse = PublicBranchAvailabilityMapper.BuildResponse(
+            availability, utcNow, localDateTime, context.TimeZoneId, localDate);
 
         var response = new BranchOpenStatusResponse(
             BranchId: context.BranchId,
-            IsOpen: availability.Status == BranchOpenStatus.Open,
-            Status: availability.Status.ToString(),
-            StatusName: statusName,
-            EvaluatedAtUtc: utcNow.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-            LocalDateTime: localDateTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-            TimeZoneId: context.TimeZoneId,
-            ScheduleSource: availability.Source.ToString(),
-            ScheduleDate: availability.ScheduleDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            OpensAtLocal: opensAtLocal,
-            ClosesAtLocal: closesAtLocal,
-            Reason: availability.Reason);
+            IsOpen: availabilityResponse.IsOpen,
+            Status: availabilityResponse.Status,
+            StatusName: availabilityResponse.StatusName,
+            EvaluatedAtUtc: availabilityResponse.EvaluatedAtUtc,
+            LocalDateTime: availabilityResponse.LocalDateTime,
+            TimeZoneId: availabilityResponse.TimeZoneId,
+            ScheduleSource: availabilityResponse.ScheduleSource,
+            ScheduleDate: availabilityResponse.ScheduleDate,
+            OpensAtLocal: availabilityResponse.OpensAtLocal,
+            ClosesAtLocal: availabilityResponse.ClosesAtLocal,
+            Reason: availabilityResponse.Reason);
 
         return Result.Success(response);
     }

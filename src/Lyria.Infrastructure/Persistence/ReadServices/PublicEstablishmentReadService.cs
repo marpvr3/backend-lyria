@@ -1,5 +1,6 @@
 using System.Globalization;
 using Lyria.Application.Abstractions.Persistence;
+using Lyria.Application.Abstractions.Services;
 using Lyria.Application.Common;
 using Lyria.Application.Features.BranchSchedules;
 using Lyria.Application.Features.PublicCatalog;
@@ -12,9 +13,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Lyria.Infrastructure.Persistence.ReadServices;
 
-internal sealed class PublicEstablishmentReadService(LyriaDbContext dbContext)
+internal sealed class PublicEstablishmentReadService(
+    LyriaDbContext dbContext,
+    IBranchAvailabilityReadService availabilityReadService,
+    ITimeZoneService timeZoneService)
     : IPublicEstablishmentReadService
 {
+    private sealed record EstablishmentProjection(
+        EstablishmentId EstablishmentId,
+        string Name,
+        string Slug,
+        string? Description,
+        string? LogoUrl,
+        EstablishmentCategoryId CategoryId,
+        string CategoryName);
+
     public async Task<PagedResponse<PublicEstablishmentListItemResponse>> ListAsync(
         PublicEstablishmentListFilter filter,
         CancellationToken cancellationToken)
@@ -117,7 +130,71 @@ internal sealed class PublicEstablishmentReadService(LyriaDbContext dbContext)
                 ));
         }
 
-        // Contar total antes de paginar
+        // OpenNow: compute availability in-memory, filter, then paginate
+        Dictionary<EstablishmentId, int>? openCountByEstablishment = null;
+
+        if (filter.OpenNow.HasValue && filter.EvaluatedAtUtc.HasValue)
+        {
+            var evaluatedAtUtc = filter.EvaluatedAtUtc.Value;
+
+            // Get all candidate establishment IDs (before pagination)
+            var candidateEstablishmentIds = await baseQuery
+                .Select(x => x.Establishment.Id)
+                .ToListAsync(cancellationToken);
+
+            // Get all active branches for candidates
+            var candidateBranches = await dbContext.Set<EstablishmentBranch>()
+                .AsNoTracking()
+                .Where(b => candidateEstablishmentIds.Contains(b.EstablishmentId) && b.IsActive)
+                .Select(b => new { b.Id, b.EstablishmentId })
+                .ToListAsync(cancellationToken);
+
+            var allBranchIds = candidateBranches.Select(b => b.Id).ToList();
+
+            // Batch compute availability
+            var contexts = await availabilityReadService.GetAvailabilityContextsAsync(
+                allBranchIds, evaluatedAtUtc, timeZoneService, cancellationToken);
+
+            // Compute open status per branch
+            var openBranchIds = new HashSet<EstablishmentBranchId>();
+            foreach (var (branchId, context) in contexts)
+            {
+                DateTime localDateTime = timeZoneService.ConvertUtcToLocal(evaluatedAtUtc, context.TimeZoneId);
+                var availability = BranchAvailabilityCalculator.Calculate(
+                    localDateTime, context.PreviousDaySchedule, context.CurrentDaySchedule);
+                if (availability.Status == BranchOpenStatus.Open)
+                {
+                    openBranchIds.Add(branchId);
+                }
+            }
+
+            openCountByEstablishment = candidateBranches
+                .GroupBy(b => b.EstablishmentId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Count(b => openBranchIds.Contains(b.Id)));
+
+            // Filter by openNow
+            HashSet<EstablishmentId> filteredEstablishmentIds;
+            if (filter.OpenNow.Value)
+            {
+                filteredEstablishmentIds = openCountByEstablishment
+                    .Where(kv => kv.Value > 0)
+                    .Select(kv => kv.Key)
+                    .ToHashSet();
+            }
+            else
+            {
+                filteredEstablishmentIds = openCountByEstablishment
+                    .Where(kv => kv.Value == 0)
+                    .Select(kv => kv.Key)
+                    .ToHashSet();
+            }
+
+            baseQuery = baseQuery.Where(x => filteredEstablishmentIds.Contains(x.Establishment.Id));
+        }
+
+        // Contar total (after openNow filter if applied)
         int totalItems = await baseQuery.CountAsync(cancellationToken);
 
         // Aplicar ordenamiento
@@ -142,20 +219,18 @@ internal sealed class PublicEstablishmentReadService(LyriaDbContext dbContext)
                     .ThenBy(x => x.Establishment.Id)
         };
 
-        // Paginar y obtener IDs
+        // Paginar y obtener datos
         var pagedEstablishments = await orderedQuery
             .Skip((filter.Page - 1) * filter.PageSize)
             .Take(filter.PageSize)
-            .Select(x => new
-            {
-                EstablishmentId = x.Establishment.Id,
+            .Select(x => new EstablishmentProjection(
+                x.Establishment.Id,
                 x.Establishment.Name,
                 x.Establishment.Slug,
                 x.Establishment.Description,
                 x.Establishment.LogoUrl,
-                CategoryId = x.Category.Id,
-                CategoryName = x.Category.Name
-            })
+                x.Category.Id,
+                x.Category.Name))
             .ToListAsync(cancellationToken);
 
         if (pagedEstablishments.Count == 0)
@@ -167,6 +242,40 @@ internal sealed class PublicEstablishmentReadService(LyriaDbContext dbContext)
         var establishmentIds = pagedEstablishments
             .Select(e => e.EstablishmentId)
             .ToList();
+
+        // If openNow filter was not applied, compute availability for paged results
+        if (openCountByEstablishment is null && filter.EvaluatedAtUtc.HasValue)
+        {
+            var pageBranches = await dbContext.Set<EstablishmentBranch>()
+                .AsNoTracking()
+                .Where(b => establishmentIds.Contains(b.EstablishmentId) && b.IsActive)
+                .Select(b => new { b.Id, b.EstablishmentId })
+                .ToListAsync(cancellationToken);
+
+            var pageBranchIds = pageBranches.Select(b => b.Id).ToList();
+
+            var contexts = await availabilityReadService.GetAvailabilityContextsAsync(
+                pageBranchIds, filter.EvaluatedAtUtc.Value, timeZoneService, cancellationToken);
+
+            var openBranchIds = new HashSet<EstablishmentBranchId>();
+            foreach (var (branchId, context) in contexts)
+            {
+                DateTime localDateTime = timeZoneService.ConvertUtcToLocal(
+                    filter.EvaluatedAtUtc.Value, context.TimeZoneId);
+                var availability = BranchAvailabilityCalculator.Calculate(
+                    localDateTime, context.PreviousDaySchedule, context.CurrentDaySchedule);
+                if (availability.Status == BranchOpenStatus.Open)
+                {
+                    openBranchIds.Add(branchId);
+                }
+            }
+
+            openCountByEstablishment = pageBranches
+                .GroupBy(b => b.EstablishmentId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Count(b => openBranchIds.Contains(b.Id)));
+        }
 
         // Consultar sedes activas para obtener branchCount, cities y primaryImageUrl
         var branchData = await dbContext.Set<EstablishmentBranch>()
@@ -260,7 +369,9 @@ internal sealed class PublicEstablishmentReadService(LyriaDbContext dbContext)
 
         // Ensamblar respuesta
         var items = pagedEstablishments.Select(e =>
-            new PublicEstablishmentListItemResponse(
+        {
+            int openCount = openCountByEstablishment?.GetValueOrDefault(e.EstablishmentId, 0) ?? 0;
+            return new PublicEstablishmentListItemResponse(
                 e.EstablishmentId.Value,
                 e.Name,
                 e.Slug,
@@ -269,10 +380,12 @@ internal sealed class PublicEstablishmentReadService(LyriaDbContext dbContext)
                 primaryImageByEstablishment.GetValueOrDefault(e.EstablishmentId),
                 new PublicCategoryBriefResponse(e.CategoryId.Value, e.CategoryName),
                 branchCountByEstablishment.GetValueOrDefault(e.EstablishmentId, 0),
+                openCount,
+                openCount > 0,
                 citiesByEstablishment.GetValueOrDefault(e.EstablishmentId, []),
                 servicesDictionary.GetValueOrDefault(e.EstablishmentId, []),
-                restrictionsDictionary.GetValueOrDefault(e.EstablishmentId, [])))
-            .ToList();
+                restrictionsDictionary.GetValueOrDefault(e.EstablishmentId, []));
+        }).ToList();
 
         return new PagedResponse<PublicEstablishmentListItemResponse>(
             items, filter.Page, filter.PageSize, totalItems);
@@ -483,7 +596,8 @@ internal sealed class PublicEstablishmentReadService(LyriaDbContext dbContext)
                 servicesByBranch.GetValueOrDefault(b.Id, []),
                 restrictionsByBranch.GetValueOrDefault(b.Id, []),
                 schedulesByBranch.GetValueOrDefault(b.Id, []),
-                imagesByBranch.GetValueOrDefault(b.Id, [])))
+                imagesByBranch.GetValueOrDefault(b.Id, []),
+                PublicBranchAvailabilityResponse.Default))
             .ToList();
 
         return new PublicEstablishmentDetailResponse(

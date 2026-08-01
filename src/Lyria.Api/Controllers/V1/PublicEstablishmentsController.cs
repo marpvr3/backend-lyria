@@ -30,6 +30,7 @@ public sealed class PublicEstablishmentsController(IMediator mediator) : Control
     /// <param name="restrictionId">Filtrar por restricción alimentaria.</param>
     /// <param name="complianceLevel">Filtrar por nivel de cumplimiento (1=Garantizado, 2=Parcial, 3=Bajo solicitud).</param>
     /// <param name="isCertified">Filtrar por certificación.</param>
+    /// <param name="openNow">Filtrar por disponibilidad: true = con sede abierta, false = sin sedes abiertas.</param>
     /// <param name="page">Número de página (por defecto 1).</param>
     /// <param name="pageSize">Cantidad de elementos por página (por defecto 20, máximo 100).</param>
     /// <param name="sortBy">Criterio de ordenamiento: name, newest, branchCount (por defecto name).</param>
@@ -51,6 +52,7 @@ public sealed class PublicEstablishmentsController(IMediator mediator) : Control
         [FromQuery] Guid? restrictionId,
         [FromQuery] int? complianceLevel,
         [FromQuery] bool? isCertified,
+        [FromQuery] bool? openNow,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string sortBy = "name",
@@ -60,7 +62,7 @@ public sealed class PublicEstablishmentsController(IMediator mediator) : Control
         var query = new GetPublicEstablishmentsQuery(
             search, categoryId, city, province, country,
             serviceId, restrictionId, complianceLevel, isCertified,
-            page, pageSize, sortBy, sortDirection);
+            openNow, page, pageSize, sortBy, sortDirection);
 
         Result<PagedResponse<PublicEstablishmentListItemResponse>> result =
             await mediator.Send(query, cancellationToken);

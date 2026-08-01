@@ -12,7 +12,8 @@ public sealed record PublicBranchDetailResponse(
     IReadOnlyList<PublicBranchServiceResponse> Services,
     IReadOnlyList<PublicBranchRestrictionResponse> Restrictions,
     IReadOnlyList<PublicBranchDayScheduleResponse> Schedules,
-    IReadOnlyList<PublicBranchImageResponse> Images);
+    IReadOnlyList<PublicBranchImageResponse> Images,
+    PublicBranchAvailabilityResponse Availability);
 
 /// <summary>
 /// Dirección de una sede.

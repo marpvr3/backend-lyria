@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Lyria.Application.Abstractions.Persistence;
+using Lyria.Application.Abstractions.Services;
 using Lyria.Application.Common;
 using Lyria.Application.Features.PublicCatalog;
 using Lyria.Domain.Establishments.Branches;
@@ -32,6 +33,14 @@ public class PublicBranchesControllerTests
         var fakeEstablishmentService = new FakePublicEstablishmentReadService();
         var fakeBranchService = new FakePublicBranchReadService();
         var fakeCatalogService = new FakePublicCatalogReadService();
+        var fakeAvailabilityService = new FakeBranchAvailabilityReadService();
+
+        // Seed availability context for BranchId1 so both endpoints return consistent data
+        var openSchedule = new EffectiveSchedule(
+            false, null, ScheduleSource.Weekly,
+            [new AvailabilityTimeSlot(new TimeOnly(0, 0), new TimeOnly(23, 59), false)]);
+        fakeAvailabilityService.Seed(new BranchAvailabilityContext(
+            BranchId1, "America/Bogota", true, null, openSchedule));
 
         WebApplicationFactory<Program> configuredFactory = factory.WithWebHostBuilder(builder =>
         {
@@ -51,6 +60,7 @@ public class PublicBranchesControllerTests
                 services.AddSingleton<IPublicEstablishmentReadService>(fakeEstablishmentService);
                 services.AddSingleton<IPublicBranchReadService>(fakeBranchService);
                 services.AddSingleton<IPublicCatalogReadService>(fakeCatalogService);
+                services.AddSingleton<IBranchAvailabilityReadService>(fakeAvailabilityService);
             });
         });
 
@@ -115,6 +125,79 @@ public class PublicBranchesControllerTests
         Assert.True(branch.TryGetProperty("images", out _));
     }
 
+    // --- Availability integration ---
+
+    [Fact]
+    public async Task GetById_ResponseBranch_IncludesAvailabilityField()
+    {
+        HttpResponseMessage response = await _client.GetAsync(
+            $"{BasePath}/{BranchId1}", TestContext.Current.CancellationToken);
+
+        JsonElement body = await response.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken);
+
+        Assert.True(body.TryGetProperty("branch", out JsonElement branch));
+        Assert.True(branch.TryGetProperty("availability", out _));
+    }
+
+    [Fact]
+    public async Task GetById_AvailabilityIsObject_WithFields()
+    {
+        HttpResponseMessage response = await _client.GetAsync(
+            $"{BasePath}/{BranchId1}", TestContext.Current.CancellationToken);
+
+        JsonElement body = await response.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken);
+
+        Assert.True(body.TryGetProperty("branch", out JsonElement branch));
+        Assert.True(branch.TryGetProperty("availability", out JsonElement availability));
+        Assert.Equal(JsonValueKind.Object, availability.ValueKind);
+        Assert.True(availability.TryGetProperty("isOpen", out _));
+        Assert.True(availability.TryGetProperty("status", out _));
+        Assert.True(availability.TryGetProperty("statusName", out _));
+        Assert.True(availability.TryGetProperty("evaluatedAtUtc", out _));
+        Assert.True(availability.TryGetProperty("timeZoneId", out _));
+        Assert.True(availability.TryGetProperty("scheduleSource", out _));
+    }
+
+    [Fact]
+    public async Task GetById_And_OpenStatus_ShareConsistentAvailabilityFields()
+    {
+        // Query both endpoints for the same branch
+        HttpResponseMessage detailResponse = await _client.GetAsync(
+            $"{BasePath}/{BranchId1}", TestContext.Current.CancellationToken);
+        HttpResponseMessage statusResponse = await _client.GetAsync(
+            $"{BasePath}/{BranchId1}/open-status", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, detailResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, statusResponse.StatusCode);
+
+        JsonElement detailBody = await detailResponse.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken);
+        JsonElement statusBody = await statusResponse.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken);
+
+        Assert.True(detailBody.TryGetProperty("branch", out JsonElement branch));
+        Assert.True(branch.TryGetProperty("availability", out JsonElement detailAvail));
+
+        // Both endpoints must expose the same availability fields
+        Assert.Equal(
+            detailAvail.GetProperty("isOpen").GetBoolean(),
+            statusBody.GetProperty("isOpen").GetBoolean());
+        Assert.Equal(
+            detailAvail.GetProperty("status").GetString(),
+            statusBody.GetProperty("status").GetString());
+        Assert.Equal(
+            detailAvail.GetProperty("statusName").GetString(),
+            statusBody.GetProperty("statusName").GetString());
+        Assert.Equal(
+            detailAvail.GetProperty("timeZoneId").GetString(),
+            statusBody.GetProperty("timeZoneId").GetString());
+        Assert.Equal(
+            detailAvail.GetProperty("scheduleSource").GetString(),
+            statusBody.GetProperty("scheduleSource").GetString());
+    }
+
     // --- Inline fakes ---
 
     private sealed class FakePublicEstablishmentReadService : IPublicEstablishmentReadService
@@ -163,7 +246,8 @@ public class PublicBranchesControllerTests
 
             var branchDetail = new PublicBranchDetailResponse(
                 BranchId1, "Sede Chapinero", branchAddress, branchLocation, branchContact,
-                branchServices, branchRestrictions, branchSchedules, branchImages);
+                branchServices, branchRestrictions, branchSchedules, branchImages,
+                PublicBranchAvailabilityResponse.Default);
 
             _data = new Dictionary<Guid, PublicBranchFullDetailResponse>
             {
@@ -184,5 +268,38 @@ public class PublicBranchesControllerTests
         public Task<PublicCatalogsResponse> GetCatalogsAsync(CancellationToken cancellationToken)
             => Task.FromResult(new PublicCatalogsResponse([], [], [],
                 new PublicCatalogLocationsResponse([], [], [])));
+    }
+
+    private sealed class FakeBranchAvailabilityReadService : IBranchAvailabilityReadService
+    {
+        private readonly Dictionary<Guid, BranchAvailabilityContext> _contexts = new();
+
+        public void Seed(BranchAvailabilityContext context) =>
+            _contexts[context.BranchId] = context;
+
+        public Task<BranchAvailabilityContext?> GetAvailabilityContextAsync(
+            EstablishmentBranchId branchId, DateOnly localDate, CancellationToken cancellationToken)
+        {
+            _contexts.TryGetValue(branchId.Value, out var ctx);
+            return Task.FromResult(ctx);
+        }
+
+        public Task<IReadOnlyDictionary<EstablishmentBranchId, BranchAvailabilityContext>>
+            GetAvailabilityContextsAsync(
+                IReadOnlyCollection<EstablishmentBranchId> branchIds,
+                DateTimeOffset evaluatedAtUtc,
+                ITimeZoneService timeZoneService,
+                CancellationToken cancellationToken)
+        {
+            var result = new Dictionary<EstablishmentBranchId, BranchAvailabilityContext>();
+            foreach (var id in branchIds)
+            {
+                if (_contexts.TryGetValue(id.Value, out var ctx))
+                {
+                    result[id] = ctx;
+                }
+            }
+            return Task.FromResult<IReadOnlyDictionary<EstablishmentBranchId, BranchAvailabilityContext>>(result);
+        }
     }
 }

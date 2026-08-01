@@ -6,13 +6,16 @@ using Lyria.Application.Common.Results;
 namespace Lyria.Application.Features.PublicCatalog.GetEstablishments;
 
 public sealed class GetPublicEstablishmentsQueryHandler(
-    IPublicEstablishmentReadService readService)
+    IPublicEstablishmentReadService readService,
+    TimeProvider timeProvider)
     : IQueryHandler<GetPublicEstablishmentsQuery, Result<PagedResponse<PublicEstablishmentListItemResponse>>>
 {
     public async ValueTask<Result<PagedResponse<PublicEstablishmentListItemResponse>>> Handle(
         GetPublicEstablishmentsQuery query,
         CancellationToken cancellationToken)
     {
+        DateTimeOffset evaluatedAtUtc = timeProvider.GetUtcNow();
+
         var filter = new PublicEstablishmentListFilter(
             query.Search?.Trim(),
             query.CategoryId,
@@ -23,10 +26,12 @@ public sealed class GetPublicEstablishmentsQueryHandler(
             query.RestrictionId,
             query.ComplianceLevel,
             query.IsCertified,
+            query.OpenNow,
             query.Page,
             query.PageSize,
             query.SortBy.Trim().ToLowerInvariant(),
-            query.SortDirection.Trim().ToLowerInvariant());
+            query.SortDirection.Trim().ToLowerInvariant(),
+            evaluatedAtUtc);
 
         var result = await readService.ListAsync(filter, cancellationToken);
 

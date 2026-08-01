@@ -437,5 +437,30 @@ public class BranchSpecialSchedulesControllerTests
 
             return Task.FromResult<BranchAvailabilityContext?>(context);
         }
+
+        public Task<IReadOnlyDictionary<EstablishmentBranchId, BranchAvailabilityContext>>
+            GetAvailabilityContextsAsync(
+                IReadOnlyCollection<EstablishmentBranchId> branchIds,
+                DateTimeOffset evaluatedAtUtc,
+                ITimeZoneService timeZoneService,
+                CancellationToken cancellationToken)
+        {
+            var result = new Dictionary<EstablishmentBranchId, BranchAvailabilityContext>();
+
+            foreach (var branchId in branchIds)
+            {
+                if (branchId.Value == _knownBranchId)
+                {
+                    result[branchId] = new BranchAvailabilityContext(
+                        _knownBranchId,
+                        "America/Argentina/Buenos_Aires",
+                        true,
+                        null,
+                        null);
+                }
+            }
+
+            return Task.FromResult<IReadOnlyDictionary<EstablishmentBranchId, BranchAvailabilityContext>>(result);
+        }
     }
 }
