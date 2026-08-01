@@ -11,6 +11,7 @@ internal static class SensitiveDataRedactor
     private static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
     {
         "password",
+        "passwordHash",
         "passwordConfirmation",
         "pass",
         "pwd",

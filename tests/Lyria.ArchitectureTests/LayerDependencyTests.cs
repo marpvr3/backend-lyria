@@ -603,6 +603,79 @@ public class LayerDependencyTests
             name!.StartsWith("Serilog", StringComparison.OrdinalIgnoreCase));
     }
 
+    // --- Availability feature location rules ---
+
+    [Fact]
+    public void BranchAvailabilityCalculator_IsInDomainLayer()
+    {
+        var type = DomainAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "BranchAvailabilityCalculator");
+
+        Assert.NotNull(type);
+        Assert.StartsWith("Lyria.Domain", type.Namespace!);
+    }
+
+    [Fact]
+    public void BranchOpenStatus_IsInDomainLayer()
+    {
+        var type = DomainAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "BranchOpenStatus");
+
+        Assert.NotNull(type);
+        Assert.StartsWith("Lyria.Domain", type.Namespace!);
+    }
+
+    [Fact]
+    public void ScheduleSource_IsInDomainLayer()
+    {
+        var type = DomainAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "ScheduleSource");
+
+        Assert.NotNull(type);
+        Assert.StartsWith("Lyria.Domain", type.Namespace!);
+    }
+
+    [Fact]
+    public void IBranchAvailabilityReadService_IsInApplicationLayer()
+    {
+        var type = ApplicationAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "IBranchAvailabilityReadService");
+
+        Assert.NotNull(type);
+        Assert.True(type.IsInterface);
+        Assert.StartsWith("Lyria.Application", type.Namespace!);
+    }
+
+    [Fact]
+    public void BranchAvailabilityReadService_IsInInfrastructureLayer()
+    {
+        var type = InfrastructureAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "BranchAvailabilityReadService");
+
+        Assert.NotNull(type);
+        Assert.False(type.IsInterface);
+        Assert.StartsWith("Lyria.Infrastructure", type.Namespace!);
+    }
+
+    [Fact]
+    public void BranchAvailabilityContext_IsInApplicationLayer()
+    {
+        var type = ApplicationAssembly.GetTypes()
+            .FirstOrDefault(t => t.Name == "BranchAvailabilityContext");
+
+        Assert.NotNull(type);
+        Assert.StartsWith("Lyria.Application", type.Namespace!);
+    }
+
+    [Fact]
+    public void Domain_DoesNotReference_BranchAvailabilityContext()
+    {
+        var domainTypes = DomainAssembly.GetTypes();
+        var contextType = domainTypes.FirstOrDefault(t => t.Name == "BranchAvailabilityContext");
+
+        Assert.Null(contextType);
+    }
+
     // --- No EF InMemory ---
 
     [Fact]
@@ -619,5 +692,153 @@ public class LayerDependencyTests
             Assert.DoesNotContain(references, name =>
                 name!.Equals("Microsoft.EntityFrameworkCore.InMemory", StringComparison.OrdinalIgnoreCase));
         }
+    }
+
+    // --- PasswordHasher location ---
+
+    [Fact]
+    public void PasswordHasher_ShouldBeInInfrastructure()
+    {
+        var passwordHasherTypes = InfrastructureAssembly.GetTypes()
+            .Where(t => t.Name == "PasswordHasher" &&
+                        !t.IsInterface &&
+                        !t.IsAbstract)
+            .ToList();
+
+        Assert.NotEmpty(passwordHasherTypes);
+        Assert.All(passwordHasherTypes, t =>
+            Assert.Equal("Lyria.Infrastructure.Security", t.Namespace));
+    }
+
+    // --- QueryHandlers should not depend on write repositories ---
+
+    [Fact]
+    public void QueryHandlers_ShouldNotDependOn_WriteRepositories()
+    {
+        var writeRepositoryNames = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "IUserRepository", "IRoleRepository", "IUserRoleRepository"
+        };
+
+        var queryHandlerInterface = typeof(Application.Abstractions.Messaging.IQueryHandler<,>);
+
+        var queryHandlers = ApplicationAssembly.GetTypes()
+            .Where(t => !t.IsAbstract &&
+                        !t.IsInterface &&
+                        t.GetInterfaces().Any(i =>
+                            i.IsGenericType &&
+                            i.GetGenericTypeDefinition() == queryHandlerInterface))
+            .ToList();
+
+        foreach (var handler in queryHandlers)
+        {
+            var constructors = handler.GetConstructors(
+                System.Reflection.BindingFlags.Public |
+                System.Reflection.BindingFlags.NonPublic |
+                System.Reflection.BindingFlags.Instance);
+
+            foreach (var ctor in constructors)
+            {
+                var parameters = ctor.GetParameters();
+                Assert.DoesNotContain(parameters, p =>
+                    writeRepositoryNames.Contains(p.ParameterType.Name));
+            }
+        }
+    }
+
+    // --- Controllers should not depend on domain entities ---
+
+    [Fact]
+    public void Controllers_ShouldNotDependOn_DomainEntities()
+    {
+        var domainEntityNames = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "User", "Role", "UserRole"
+        };
+
+        var controllers = ApiAssembly.GetTypes()
+            .Where(t => t.Name.EndsWith("Controller", StringComparison.Ordinal) &&
+                        !t.IsAbstract)
+            .ToList();
+
+        Assert.NotEmpty(controllers);
+
+        foreach (var controller in controllers)
+        {
+            var allMembers = controller.GetMethods(
+                System.Reflection.BindingFlags.Public |
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.DeclaredOnly);
+
+            foreach (var method in allMembers)
+            {
+                // Check return type
+                Assert.DoesNotContain(domainEntityNames, name =>
+                    method.ReturnType.FullName?.Contains($"Lyria.Domain.") == true &&
+                    method.ReturnType.Name == name);
+
+                // Check parameter types
+                foreach (var param in method.GetParameters())
+                {
+                    Assert.DoesNotContain(domainEntityNames, name =>
+                        param.ParameterType.FullName?.Contains($"Lyria.Domain.") == true &&
+                        param.ParameterType.Name == name);
+                }
+            }
+
+            // Check constructor parameters
+            foreach (var ctor in controller.GetConstructors())
+            {
+                foreach (var param in ctor.GetParameters())
+                {
+                    Assert.DoesNotContain(domainEntityNames, name =>
+                        param.ParameterType.FullName?.Contains($"Lyria.Domain.") == true &&
+                        param.ParameterType.Name == name);
+                }
+            }
+        }
+    }
+
+    // --- Domain entities should not have public constructors ---
+
+    [Fact]
+    public void DomainEntities_ShouldNotHave_PublicConstructors()
+    {
+        var entityBaseType = typeof(Domain.Abstractions.Entity<>);
+
+        var domainEntities = DomainAssembly.GetTypes()
+            .Where(t => !t.IsAbstract &&
+                        !t.IsInterface &&
+                        IsSubclassOfGeneric(t, entityBaseType))
+            .ToList();
+
+        Assert.NotEmpty(domainEntities);
+
+        foreach (var entity in domainEntities)
+        {
+            var publicConstructors = entity.GetConstructors(
+                System.Reflection.BindingFlags.Public |
+                System.Reflection.BindingFlags.Instance);
+
+            Assert.True(publicConstructors.Length == 0,
+                $"Entity '{entity.FullName}' has {publicConstructors.Length} public constructor(s). " +
+                "Domain entities should only have private constructors to enforce factory method usage.");
+        }
+    }
+
+    private static bool IsSubclassOfGeneric(System.Type type, System.Type genericBaseType)
+    {
+        var current = type.BaseType;
+        while (current is not null && current != typeof(object))
+        {
+            if (current.IsGenericType && current.GetGenericTypeDefinition() == genericBaseType)
+            {
+                return true;
+            }
+
+            current = current.BaseType;
+        }
+
+        return false;
     }
 }

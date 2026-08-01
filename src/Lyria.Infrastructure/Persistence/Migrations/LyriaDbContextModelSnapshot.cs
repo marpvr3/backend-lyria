@@ -292,6 +292,12 @@ namespace Lyria.Infrastructure.Persistence.Migrations
                         .HasColumnType("varchar(150)")
                         .HasColumnName("Calle");
 
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("ZonaHoraria");
+
                     b.Property<int>("TotalReviews")
                         .HasColumnType("int")
                         .HasColumnName("TotalResenas");
@@ -299,12 +305,6 @@ namespace Lyria.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2")
                         .HasColumnName("FechaActualizacion");
-
-                    b.Property<string>("TimeZoneId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("ZonaHoraria");
 
                     b.Property<string>("WhatsApp")
                         .HasMaxLength(30)
@@ -623,6 +623,52 @@ namespace Lyria.Infrastructure.Persistence.Migrations
                     b.ToTable("Restricciones", (string)null);
                 });
 
+            modelBuilder.Entity("Lyria.Domain.Roles.Role", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("RolId");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("Codigo");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("FechaCreacion");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("Descripcion");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("Activo");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("Nombre");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("FechaActualizacion");
+
+                    b.HasKey("Id")
+                        .HasName("PK_Roles");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Roles_Codigo");
+
+                    b.ToTable("Roles", (string)null);
+                });
+
             modelBuilder.Entity("Lyria.Domain.Services.Service", b =>
                 {
                     b.Property<Guid>("Id")
@@ -672,6 +718,147 @@ namespace Lyria.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("UX_Servicios_Nombre");
 
                     b.ToTable("Servicios", (string)null);
+                });
+
+            modelBuilder.Entity("Lyria.Domain.Users.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("UsuarioId");
+
+                    b.Property<DateOnly?>("BirthDate")
+                        .HasColumnType("date")
+                        .HasColumnName("FechaNacimiento");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("FechaCreacion");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(254)")
+                        .HasColumnName("Email");
+
+                    b.Property<bool>("IsEmailVerified")
+                        .HasColumnType("bit")
+                        .HasColumnName("EmailVerificado");
+
+                    b.Property<DateTime?>("LastLoginAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("UltimaConexion");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("Apellido");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("Nombre");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(256)")
+                        .HasColumnName("HashContrasena");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(30)")
+                        .HasColumnName("Telefono");
+
+                    b.Property<string>("PhotoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("FotoUrl");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("Estado");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("FechaActualizacion");
+
+                    b.HasKey("Id")
+                        .HasName("PK_Usuarios");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Usuarios_Email");
+
+                    b.ToTable("Usuarios", (string)null);
+                });
+
+            modelBuilder.Entity("Lyria.Domain.Users.UserRoles.UserRole", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("UsuarioRolId");
+
+                    b.Property<DateTime>("AssignedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("FechaAsignacion");
+
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("SedeId");
+
+                    b.Property<DateTime?>("EndedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("FechaFinalizacion");
+
+                    b.Property<Guid?>("EstablishmentId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("EstablecimientoId");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("Activo");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("RolId");
+
+                    b.Property<string>("ScopeType")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(13)")
+                        .HasColumnName("AlcanceTipo");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("UsuarioId");
+
+                    b.HasKey("Id")
+                        .HasName("PK_UsuarioRoles");
+
+                    b.HasIndex("BranchId")
+                        .HasDatabaseName("IX_UsuarioRoles_SedeId")
+                        .HasFilter("[SedeId] IS NOT NULL");
+
+                    b.HasIndex("EstablishmentId")
+                        .HasDatabaseName("IX_UsuarioRoles_EstablecimientoId")
+                        .HasFilter("[EstablecimientoId] IS NOT NULL");
+
+                    b.HasIndex("RoleId")
+                        .HasDatabaseName("IX_UsuarioRoles_RolId");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_UsuarioRoles_UsuarioId");
+
+                    b.ToTable("UsuarioRoles", (string)null);
                 });
 
             modelBuilder.Entity("Lyria.Domain.Establishments.Branches.BranchImage", b =>
@@ -756,6 +943,35 @@ namespace Lyria.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("FK_Establecimientos_CategoriasEstablecimiento_CategoriaId");
+                });
+
+            modelBuilder.Entity("Lyria.Domain.Users.UserRoles.UserRole", b =>
+                {
+                    b.HasOne("Lyria.Domain.Establishments.Branches.EstablishmentBranch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_UsuarioRoles_Sedes_SedeId");
+
+                    b.HasOne("Lyria.Domain.Establishments.Establishment", null)
+                        .WithMany()
+                        .HasForeignKey("EstablishmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_UsuarioRoles_Establecimientos_EstablecimientoId");
+
+                    b.HasOne("Lyria.Domain.Roles.Role", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_UsuarioRoles_Roles_RolId");
+
+                    b.HasOne("Lyria.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_UsuarioRoles_Usuarios_UsuarioId");
                 });
 #pragma warning restore 612, 618
         }

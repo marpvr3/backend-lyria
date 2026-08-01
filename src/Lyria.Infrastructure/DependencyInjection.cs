@@ -1,8 +1,10 @@
 using Lyria.Application.Abstractions.Persistence;
+using Lyria.Application.Abstractions.Security;
 using Lyria.Application.Abstractions.Services;
 using Lyria.Infrastructure.Persistence;
 using Lyria.Infrastructure.Persistence.ReadServices;
 using Lyria.Infrastructure.Persistence.Repositories;
+using Lyria.Infrastructure.Security;
 using Lyria.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -62,6 +64,17 @@ public static class DependencyInjection
         services.AddScoped<IPublicEstablishmentReadService, PublicEstablishmentReadService>();
         services.AddScoped<IPublicBranchReadService, PublicBranchReadService>();
         services.AddScoped<IPublicCatalogReadService, PublicCatalogReadService>();
+
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUserReadService, UserReadService>();
+
+        services.AddScoped<IRoleRepository, RoleRepository>();
+        services.AddScoped<IRoleReadService, RoleReadService>();
+
+        services.AddScoped<IUserRoleRepository, UserRoleRepository>();
+        services.AddScoped<IUserRoleReadService, UserRoleReadService>();
+
+        services.AddSingleton<IPasswordHasher, PasswordHasher>();
 
         services.AddSingleton<ITimeZoneService, TimeZoneService>();
         services.AddSingleton<IBranchTimeZoneDefaults, BranchTimeZoneDefaults>();
