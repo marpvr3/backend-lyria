@@ -74,6 +74,9 @@ public static class DependencyInjection
         services.AddScoped<IUserRoleRepository, UserRoleRepository>();
         services.AddScoped<IUserRoleReadService, UserRoleReadService>();
 
+        services.AddScoped<IUserRestrictionRepository, UserRestrictionRepository>();
+        services.AddScoped<IUserRestrictionReadService, UserRestrictionReadService>();
+
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
 
         services.AddSingleton<ITimeZoneService, TimeZoneService>();

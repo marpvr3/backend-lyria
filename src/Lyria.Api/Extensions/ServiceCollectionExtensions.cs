@@ -16,6 +16,8 @@ public static class ServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddLyriaCors(configuration);
+
         services.AddApplication();
         services.AddInfrastructure(configuration);
         services.AddMediator(options =>

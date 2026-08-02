@@ -23,6 +23,11 @@ public static class WebApplicationExtensions
             };
         });
 
+        app.UseRouting();
+
+        // CORS debe ejecutarse después de UseRouting y antes de la autorización.
+        app.UseCors(CorsExtensions.PolicyName);
+
         app.UseSwagger();
 
         app.UseSwaggerUI(options =>
