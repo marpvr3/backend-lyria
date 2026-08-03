@@ -1,6 +1,7 @@
 using Lyria.Application;
 using Lyria.Application.Features.BranchSpecialSchedules;
 using Lyria.Infrastructure;
+using Lyria.Infrastructure.Persistence;
 using Microsoft.OpenApi;
 
 namespace Lyria.Api.Extensions;
@@ -13,6 +14,11 @@ public static class ServiceCollectionExtensions
     {
         services.AddOptions<BranchTimeZoneOptions>()
             .Bind(configuration.GetSection(BranchTimeZoneOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddOptions<DatabaseStartupOptions>()
+            .Bind(configuration.GetSection(DatabaseStartupOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
 

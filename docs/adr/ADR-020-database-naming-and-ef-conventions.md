@@ -33,9 +33,9 @@ Lyria necesita convenciones claras para el modelado físico de la base de datos 
 ### Migraciones
 
 - Las migraciones se generan dentro de `Lyria.Infrastructure/Persistence/Migrations`.
-- No se ejecutan migraciones automáticamente al iniciar la aplicación.
 - No se utiliza `EnsureCreated` en código productivo.
-- La ejecución de migraciones se realizará mediante un proceso controlado de despliegue.
+- La ejecución de migraciones se realiza mediante un proceso controlado de despliegue.
+- Ese proceso controlado quedó definido en [ADR-023](ADR-023-automatic-migrations-on-startup.md): la API puede aplicar las migraciones pendientes al iniciar, deshabilitado por defecto y activable solo con `Database__ApplyMigrationsOnStartup=true` en el servidor.
 
 ### Restricciones
 
@@ -53,4 +53,5 @@ Lyria necesita convenciones claras para el modelado físico de la base de datos 
 ## Referencias
 
 - [ADR-004: SQL Server y EF Core](ADR-004-sql-server-ef-core.md)
+- [ADR-023: Aplicación automática de migraciones al iniciar la API](ADR-023-automatic-migrations-on-startup.md)
 - [Documentación de persistencia de EstablishmentCategory](../persistence/establishment-category-persistence.md)
