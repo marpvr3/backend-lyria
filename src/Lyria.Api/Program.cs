@@ -25,6 +25,10 @@ try
 
     WebApplication app = builder.Build();
 
+    // Las migraciones pendientes se aplican antes de configurar el pipeline HTTP,
+    // de modo que la API nunca atienda solicitudes con una estructura incompleta.
+    await app.ApplyPendingMigrationsAsync();
+
     app.UseLyriaPipeline();
 
     app.Run();
@@ -32,6 +36,10 @@ try
 catch (Exception ex)
 {
     Log.Fatal(ex, "Lyria API terminó de forma inesperada");
+
+    // Se relanza para que el arranque falle con un código de salida distinto de cero:
+    // un fallo de migración o de configuración no puede pasar inadvertido.
+    throw;
 }
 finally
 {

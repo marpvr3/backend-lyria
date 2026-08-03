@@ -125,6 +125,23 @@ docs/
 - [ADR-019: Agregado EstablishmentCategory](docs/adr/ADR-019-establishment-category-aggregate.md)
 - [ADR-020: Convenciones de base de datos y EF Core](docs/adr/ADR-020-database-naming-and-ef-conventions.md)
 - [ADR-021: Endpoints públicos de consulta de catálogos](docs/adr/ADR-021-public-catalog-query-endpoints.md)
+- [ADR-022: Campos de auditoría en entidades](docs/adr/ADR-022-entity-audit-fields.md)
+- [ADR-023: Migraciones automáticas al iniciar la API](docs/adr/ADR-023-automatic-migrations-on-startup.md)
+
+### Operaciones
+
+- [Migraciones automáticas al iniciar la API](docs/operations/database-migrations-on-startup.md)
+
+## Despliegue
+
+La estructura de la base de datos se actualiza aplicando las migraciones EF Core pendientes durante el inicio de la API. No se restauran respaldos para publicar cambios de esquema.
+
+| Variable de entorno | Valor | Efecto |
+|---------------------|-------|--------|
+| `Database__ApplyMigrationsOnStartup` | `true` | La API aplica las migraciones pendientes antes de aceptar solicitudes |
+| (sin configurar) | `false` (predeterminado) | La API no modifica la base de datos al iniciar |
+
+Se configura una sola vez en el servidor y requiere reiniciar la API para tomar efecto. Detalles, limitaciones y permisos SQL requeridos: [Migraciones automáticas al iniciar la API](docs/operations/database-migrations-on-startup.md).
 
 ## Convenciones
 
