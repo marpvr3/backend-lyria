@@ -5,7 +5,6 @@ namespace Lyria.Application.Features.Roles.List;
 
 public sealed record GetRolesQuery(
     string? Search,
-    string? Code,
     bool? IsActive,
     int Page = 1,
     int PageSize = 20,

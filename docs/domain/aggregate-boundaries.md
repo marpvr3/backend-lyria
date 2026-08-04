@@ -81,7 +81,7 @@ Unverified → Active → Suspended → Deleted
 **Límite transaccional:** definición del rol, adición y eliminación de `PermissionId` del conjunto controlado.
 
 **Invariantes:**
-- El código del rol debe ser único.
+- El rol se identifica internamente por `RoleId` y se presenta mediante `Name`.
 - No se pueden asignar `PermissionId` que no existan en el catálogo del sistema.
 - No puede contener el mismo `PermissionId` dos veces.
 - Un rol debe tener al menos un permiso para ser asignable.

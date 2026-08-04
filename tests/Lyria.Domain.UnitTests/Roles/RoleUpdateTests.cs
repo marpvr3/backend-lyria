@@ -17,14 +17,14 @@ public sealed class RoleUpdateTests
     }
 
     [Fact]
-    public void Update_DoesNotChangeCode()
+    public void Update_DoesNotChangeIdentity()
     {
         var role = CreateRole();
-        string originalCode = role.Code;
+        RoleId originalId = role.Id;
 
         role.Update("Nuevo Nombre", null);
 
-        Assert.Equal(originalCode, role.Code);
+        Assert.Equal(originalId, role.Id);
     }
 
     [Fact]
@@ -57,5 +57,5 @@ public sealed class RoleUpdateTests
     }
 
     private static Role CreateRole() =>
-        Role.Create(RoleId.New(), "ADMIN", "Administrador", "Descripción original");
+        Role.Create(RoleId.New(), "Administrador", "Descripción original");
 }

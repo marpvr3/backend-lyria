@@ -1,3 +1,4 @@
+using System.Globalization;
 using Lyria.Domain.Roles;
 using Lyria.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -38,10 +39,37 @@ public sealed class RoleRepositoryTests : IDisposable
                 .FirstOrDefaultAsync(r => r.Id == role.Id, CancellationToken.None);
 
             Assert.NotNull(persisted);
-            Assert.Equal("TEST_ROLE", persisted.Code);
             Assert.Equal("Test Role", persisted.Name);
             Assert.Null(persisted.Description);
             Assert.True(persisted.IsActive);
+            Assert.Equal(FixedTime.UtcDateTime, persisted.CreatedAtUtc);
+        }
+    }
+
+    [Fact]
+    public async Task AddAsync_Should_Issue_InsertWithoutCodigoColumn()
+    {
+        var role = CreateTestRole();
+
+        await using (var context = _fixture.CreateContext())
+        {
+            var repository = new RoleRepository(context);
+            await repository.AddAsync(role, CancellationToken.None);
+            await repository.SaveChangesAsync(CancellationToken.None);
+        }
+
+        await using (var context = _fixture.CreateContext())
+        {
+            var connection = context.Database.GetDbConnection();
+
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('Roles') WHERE name = 'Codigo';";
+
+            long matches = Convert.ToInt64(
+                await command.ExecuteScalarAsync(CancellationToken.None),
+                CultureInfo.InvariantCulture);
+
+            Assert.Equal(0, matches);
         }
     }
 
@@ -64,7 +92,7 @@ public sealed class RoleRepositoryTests : IDisposable
 
             Assert.NotNull(result);
             Assert.Equal(role.Id, result.Id);
-            Assert.Equal("TEST_ROLE", result.Code);
+            Assert.Equal("Test Role", result.Name);
         }
     }
 
@@ -81,58 +109,21 @@ public sealed class RoleRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task ExistsByCodeAsync_Should_Return_True_WhenCodeExists()
+    public async Task SaveChangesAsync_Should_Allow_Roles_WithSameName()
     {
-        var role = CreateTestRole("EXISTING_ROLE");
-
         await using (var context = _fixture.CreateContext())
         {
             var repository = new RoleRepository(context);
-            await repository.AddAsync(role, CancellationToken.None);
+            await repository.AddAsync(CreateTestRole(), CancellationToken.None);
+            await repository.AddAsync(CreateTestRole(), CancellationToken.None);
             await repository.SaveChangesAsync(CancellationToken.None);
         }
 
         await using (var context = _fixture.CreateContext())
         {
-            var repository = new RoleRepository(context);
-            var exists = await repository.ExistsByCodeAsync(
-                "EXISTING_ROLE", null, CancellationToken.None);
+            int count = await context.Set<Role>().CountAsync(CancellationToken.None);
 
-            Assert.True(exists);
-        }
-    }
-
-    [Fact]
-    public async Task ExistsByCodeAsync_Should_Return_False_WhenCodeNotExists()
-    {
-        await using var context = _fixture.CreateContext();
-        var repository = new RoleRepository(context);
-
-        var exists = await repository.ExistsByCodeAsync(
-            "NONEXISTENT_ROLE", null, CancellationToken.None);
-
-        Assert.False(exists);
-    }
-
-    [Fact]
-    public async Task ExistsByCodeAsync_Should_Exclude_Specified_Id()
-    {
-        var role = CreateTestRole("EXCLUDE_ROLE");
-
-        await using (var context = _fixture.CreateContext())
-        {
-            var repository = new RoleRepository(context);
-            await repository.AddAsync(role, CancellationToken.None);
-            await repository.SaveChangesAsync(CancellationToken.None);
-        }
-
-        await using (var context = _fixture.CreateContext())
-        {
-            var repository = new RoleRepository(context);
-            var exists = await repository.ExistsByCodeAsync(
-                "EXCLUDE_ROLE", role.Id, CancellationToken.None);
-
-            Assert.False(exists);
+            Assert.Equal(2, count);
         }
     }
 
@@ -141,6 +132,6 @@ public sealed class RoleRepositoryTests : IDisposable
         _fixture.Dispose();
     }
 
-    private static Role CreateTestRole(string code = "TEST_ROLE") =>
-        Role.Create(RoleId.New(), code, "Test Role", null);
+    private static Role CreateTestRole(string name = "Test Role") =>
+        Role.Create(RoleId.New(), name, null);
 }

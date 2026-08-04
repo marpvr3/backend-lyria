@@ -10,58 +10,26 @@ public sealed class RoleCreateTests
     [Fact]
     public void Create_WithValidData_CreatesRole()
     {
-        var role = Role.Create(DefaultId, "ADMIN", "Administrador", "Rol de administración");
+        var role = Role.Create(DefaultId, "Administrador", "Rol de administración");
 
         Assert.Equal(DefaultId, role.Id);
-        Assert.Equal("ADMIN", role.Code);
         Assert.Equal("Administrador", role.Name);
         Assert.Equal("Rol de administración", role.Description);
         Assert.True(role.IsActive);
     }
 
     [Fact]
-    public void Create_WithEmptyCode_ThrowsRoleException()
-    {
-        Assert.Throws<RoleException>(() =>
-            Role.Create(DefaultId, "", "Administrador", null));
-    }
-
-    [Fact]
-    public void Create_WithCodeTooShort_ThrowsRoleException()
-    {
-        Assert.Throws<RoleException>(() =>
-            Role.Create(DefaultId, "A", "Administrador", null));
-    }
-
-    [Fact]
-    public void Create_WithCodeTooLong_ThrowsRoleException()
-    {
-        string longCode = new('A', Role.CodeMaxLength + 1);
-
-        Assert.Throws<RoleException>(() =>
-            Role.Create(DefaultId, longCode, "Administrador", null));
-    }
-
-    [Fact]
-    public void Create_TrimsCode()
-    {
-        var role = Role.Create(DefaultId, "  admin  ", "Administrador", null);
-
-        Assert.Equal("admin", role.Code);
-    }
-
-    [Fact]
     public void Create_WithEmptyName_ThrowsRoleException()
     {
         Assert.Throws<RoleException>(() =>
-            Role.Create(DefaultId, "ADMIN", "", null));
+            Role.Create(DefaultId, "", null));
     }
 
     [Fact]
     public void Create_WithNameTooShort_ThrowsRoleException()
     {
         Assert.Throws<RoleException>(() =>
-            Role.Create(DefaultId, "ADMIN", "A", null));
+            Role.Create(DefaultId, "A", null));
     }
 
     [Fact]
@@ -70,13 +38,13 @@ public sealed class RoleCreateTests
         string longName = new('A', Role.NameMaxLength + 1);
 
         Assert.Throws<RoleException>(() =>
-            Role.Create(DefaultId, "ADMIN", longName, null));
+            Role.Create(DefaultId, longName, null));
     }
 
     [Fact]
     public void Create_NormalizesName()
     {
-        var role = Role.Create(DefaultId, "ADMIN", "  Super   Admin  ", null);
+        var role = Role.Create(DefaultId, "  Super   Admin  ", null);
 
         Assert.Equal("Super Admin", role.Name);
     }
@@ -84,7 +52,7 @@ public sealed class RoleCreateTests
     [Fact]
     public void Create_WithNullDescription_SetsDescriptionToNull()
     {
-        var role = Role.Create(DefaultId, "ADMIN", "Administrador", null);
+        var role = Role.Create(DefaultId, "Administrador", null);
 
         Assert.Null(role.Description);
     }
@@ -92,7 +60,7 @@ public sealed class RoleCreateTests
     [Fact]
     public void Create_WithValidDescription_SetsDescription()
     {
-        var role = Role.Create(DefaultId, "ADMIN", "Administrador", "Rol con todos los permisos");
+        var role = Role.Create(DefaultId, "Administrador", "Rol con todos los permisos");
 
         Assert.Equal("Rol con todos los permisos", role.Description);
     }
@@ -103,6 +71,6 @@ public sealed class RoleCreateTests
         string longDesc = new('A', Role.DescriptionMaxLength + 1);
 
         Assert.Throws<RoleException>(() =>
-            Role.Create(DefaultId, "ADMIN", "Administrador", longDesc));
+            Role.Create(DefaultId, "Administrador", longDesc));
     }
 }

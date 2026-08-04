@@ -58,10 +58,10 @@ public sealed class UserRoleReadServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetByUserIdAsync_Should_Include_RoleCodeAndName()
+    public async Task GetByUserIdAsync_Should_Include_RoleIdAndName()
     {
         var user = CreateTestUser();
-        var role = Role.Create(RoleId.New(), "ADMIN", "Administrador", null);
+        var role = Role.Create(RoleId.New(), "Administrador", null);
 
         await using (var context = _fixture.CreateContext())
         {
@@ -86,7 +86,7 @@ public sealed class UserRoleReadServiceTests : IDisposable
             var result = await readService.GetByUserIdAsync(user.Id, CancellationToken.None);
 
             Assert.Single(result);
-            Assert.Equal("ADMIN", result[0].RoleCode);
+            Assert.Equal(role.Id.Value, result[0].RoleId);
             Assert.Equal("Administrador", result[0].RoleName);
         }
     }
@@ -147,6 +147,6 @@ public sealed class UserRoleReadServiceTests : IDisposable
     private static User CreateTestUser(string email = "test@example.com") =>
         User.Create(UserId.New(), "Juan", "Garcia", email, "hashed_pw", null, null, null);
 
-    private static Role CreateTestRole(string code = "TEST_ROLE") =>
-        Role.Create(RoleId.New(), code, "Test Role", null);
+    private static Role CreateTestRole(string name = "Test Role") =>
+        Role.Create(RoleId.New(), name, null);
 }

@@ -21,16 +21,6 @@ internal sealed class RoleConfiguration
                 value => new RoleId(value))
             .ValueGeneratedNever();
 
-        builder.Property(r => r.Code)
-            .HasColumnName("Codigo")
-            .HasMaxLength(Role.CodeMaxLength)
-            .IsUnicode(false)
-            .IsRequired();
-
-        builder.HasIndex(r => r.Code)
-            .IsUnique()
-            .HasDatabaseName("UX_Roles_Codigo");
-
         builder.Property(r => r.Name)
             .HasColumnName("Nombre")
             .HasMaxLength(Role.NameMaxLength)

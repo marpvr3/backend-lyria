@@ -27,14 +27,7 @@ internal sealed class FakeRoleReadService : IRoleReadService
         {
             string search = filter.Search.Trim();
             query = query.Where(r =>
-                r.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                r.Code.Contains(search, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (!string.IsNullOrWhiteSpace(filter.Code))
-        {
-            query = query.Where(r =>
-                string.Equals(r.Code, filter.Code, StringComparison.OrdinalIgnoreCase));
+                r.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
         }
 
         if (filter.IsActive.HasValue)
@@ -47,7 +40,7 @@ internal sealed class FakeRoleReadService : IRoleReadService
         var items = all
             .Skip((filter.Page - 1) * filter.PageSize)
             .Take(filter.PageSize)
-            .Select(r => new RoleListItemResponse(r.Id, r.Code, r.Name, r.IsActive))
+            .Select(r => new RoleListItemResponse(r.Id, r.Name, r.IsActive))
             .ToList();
 
         return Task.FromResult(new PagedResponse<RoleListItemResponse>(

@@ -29,10 +29,10 @@ public sealed class GetUserRolesTests
             "Active", true, null, DateTime.UtcNow, null));
 
         _userRoleReadService.Seed(new UserRoleResponse(
-            Guid.NewGuid(), userId, Guid.NewGuid(), "ADMIN", "Administrador",
+            Guid.NewGuid(), userId, Guid.NewGuid(), "Administrador",
             "Global", null, null, true, DateTime.UtcNow, null));
         _userRoleReadService.Seed(new UserRoleResponse(
-            Guid.NewGuid(), userId, Guid.NewGuid(), "USER", "Usuario",
+            Guid.NewGuid(), userId, Guid.NewGuid(), "Usuario",
             "Global", null, null, true, DateTime.UtcNow, null));
 
         var query = new GetUserRolesQuery(userId);

@@ -22,7 +22,7 @@ public sealed class UpdateRoleTests
     {
         var roleId = RoleId.New();
         _repository.Seed(Role.Create(
-            roleId, "ADMIN", "Administrador", null));
+            roleId, "Administrador", null));
 
         var command = new UpdateRoleCommand(
             roleId.Value, "Super Administrador", "Descripción actualizada");

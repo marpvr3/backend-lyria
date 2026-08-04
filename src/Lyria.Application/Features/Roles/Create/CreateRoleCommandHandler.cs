@@ -13,21 +13,10 @@ public sealed class CreateRoleCommandHandler(
         CreateRoleCommand command,
         CancellationToken cancellationToken)
     {
-        string normalizedCode = Role.NormalizeCode(command.Code);
-
-        bool codeExists = await repository.ExistsByCodeAsync(
-            normalizedCode, excludingId: null, cancellationToken);
-
-        if (codeExists)
-        {
-            return Result.Failure<RoleId>(RoleErrors.CodeAlreadyExists());
-        }
-
         var id = RoleId.New();
 
         var role = Role.Create(
             id,
-            command.Code,
             command.Name,
             command.Description);
 

@@ -46,5 +46,5 @@ public sealed class RoleActivateDeactivateTests
     }
 
     private static Role CreateRole() =>
-        Role.Create(RoleId.New(), "ADMIN", "Administrador", null);
+        Role.Create(RoleId.New(), "Administrador", null);
 }

@@ -1,3 +1,4 @@
+using System.Reflection;
 using Lyria.Application.Common.Errors;
 using Lyria.Application.Common.Results;
 using Lyria.Application.Features.Roles;
@@ -22,7 +23,7 @@ public sealed class GetRoleByIdTests
     {
         var id = Guid.NewGuid();
         _readService.Seed(new RoleResponse(
-            id, "ADMIN", "Administrador", "Rol de administrador", true,
+            id, "Administrador", "Rol de administrador", true,
             DateTime.UtcNow, null));
 
         var query = new GetRoleByIdQuery(id);
@@ -31,8 +32,21 @@ public sealed class GetRoleByIdTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal(id, result.Value.Id);
-        Assert.Equal("ADMIN", result.Value.Code);
         Assert.Equal("Administrador", result.Value.Name);
+        Assert.Equal("Rol de administrador", result.Value.Description);
+    }
+
+    [Fact]
+    public void Response_DoesNotExposeCode()
+    {
+        string[] properties = typeof(RoleResponse)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Select(p => p.Name)
+            .ToArray();
+
+        Assert.Equal(
+            ["Id", "Name", "Description", "IsActive", "CreatedAtUtc", "UpdatedAtUtc"],
+            properties);
     }
 
     [Fact]

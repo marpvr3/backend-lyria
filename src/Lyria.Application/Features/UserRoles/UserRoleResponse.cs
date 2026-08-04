@@ -6,7 +6,6 @@ namespace Lyria.Application.Features.UserRoles;
 /// <param name="Id">Identificador único de la asignación.</param>
 /// <param name="UserId">Identificador del usuario.</param>
 /// <param name="RoleId">Identificador del rol.</param>
-/// <param name="RoleCode">Código del rol asignado.</param>
 /// <param name="RoleName">Nombre del rol asignado.</param>
 /// <param name="ScopeType">Tipo de alcance de la asignación.</param>
 /// <param name="EstablishmentId">Identificador del establecimiento asociado al alcance.</param>
@@ -18,7 +17,6 @@ public sealed record UserRoleResponse(
     Guid Id,
     Guid UserId,
     Guid RoleId,
-    string RoleCode,
     string RoleName,
     string ScopeType,
     Guid? EstablishmentId,

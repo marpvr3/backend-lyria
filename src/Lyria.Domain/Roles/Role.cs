@@ -5,13 +5,10 @@ namespace Lyria.Domain.Roles;
 
 public sealed partial class Role : AggregateRoot<RoleId>, IAuditableEntity
 {
-    public const int CodeMinLength = 2;
-    public const int CodeMaxLength = 50;
     public const int NameMinLength = 2;
     public const int NameMaxLength = 100;
     public const int DescriptionMaxLength = 500;
 
-    public string Code { get; private set; } = null!;
     public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
     public bool IsActive { get; private set; }
@@ -27,12 +24,10 @@ public sealed partial class Role : AggregateRoot<RoleId>, IAuditableEntity
 
     private Role(
         RoleId id,
-        string code,
         string name,
         string? description)
         : base(id)
     {
-        Code = code;
         Name = name;
         Description = description;
         IsActive = true;
@@ -40,20 +35,16 @@ public sealed partial class Role : AggregateRoot<RoleId>, IAuditableEntity
 
     public static Role Create(
         RoleId id,
-        string code,
         string name,
         string? description)
     {
-        string normalizedCode = NormalizeCode(code);
-        ValidateCode(normalizedCode);
-
         string normalizedName = NormalizeName(name);
         ValidateName(normalizedName);
 
         string? normalizedDescription = NormalizeDescription(description);
         ValidateDescription(normalizedDescription);
 
-        return new Role(id, normalizedCode, normalizedName, normalizedDescription);
+        return new Role(id, normalizedName, normalizedDescription);
     }
 
     public void Update(string name, string? description)
@@ -88,16 +79,6 @@ public sealed partial class Role : AggregateRoot<RoleId>, IAuditableEntity
         IsActive = false;
     }
 
-    public static string NormalizeCode(string code)
-    {
-        if (string.IsNullOrWhiteSpace(code))
-        {
-            return string.Empty;
-        }
-
-        return code.Trim();
-    }
-
     public static string NormalizeName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -117,26 +98,6 @@ public sealed partial class Role : AggregateRoot<RoleId>, IAuditableEntity
         }
 
         return description.Trim();
-    }
-
-    private static void ValidateCode(string code)
-    {
-        if (string.IsNullOrEmpty(code))
-        {
-            throw new RoleException("El código del rol es obligatorio.");
-        }
-
-        if (code.Length < CodeMinLength)
-        {
-            throw new RoleException(
-                $"El código del rol debe tener al menos {CodeMinLength} caracteres.");
-        }
-
-        if (code.Length > CodeMaxLength)
-        {
-            throw new RoleException(
-                $"El código del rol no puede superar los {CodeMaxLength} caracteres.");
-        }
     }
 
     private static void ValidateName(string name)

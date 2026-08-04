@@ -6,7 +6,7 @@ public sealed class GetRolesQueryValidator
     : AbstractValidator<GetRolesQuery>
 {
     private static readonly string[] AllowedSortByValues =
-        ["code", "name", "createdAtUtc"];
+        ["name", "createdAtUtc"];
 
     private static readonly string[] AllowedSortDirectionValues =
         ["asc", "desc"];

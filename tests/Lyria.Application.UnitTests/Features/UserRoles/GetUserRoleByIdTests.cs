@@ -22,7 +22,7 @@ public sealed class GetUserRoleByIdTests
     {
         var id = Guid.NewGuid();
         _readService.Seed(new UserRoleResponse(
-            id, Guid.NewGuid(), Guid.NewGuid(), "ADMIN", "Administrador",
+            id, Guid.NewGuid(), Guid.NewGuid(), "Administrador",
             "Global", null, null, true, DateTime.UtcNow, null));
 
         var query = new GetUserRoleByIdQuery(id);

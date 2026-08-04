@@ -33,35 +33,35 @@ public class RolesControllerTests
         _fakeReadService = new FakeRoleReadService();
 
         _fakeReadService.Seed(new RoleResponse(
-            RoleId1, "ADMIN", "Administrador", "Rol de administrador del sistema",
+            RoleId1, "Administrador", "Rol de administrador del sistema",
             true, DateTime.UtcNow, null));
 
         _fakeReadService.Seed(new RoleResponse(
-            RoleId2, "OWNER", "Propietario", null,
+            RoleId2, "Propietario", null,
             true, DateTime.UtcNow, null));
 
         _fakeReadService.Seed(new RoleResponse(
-            InactiveRoleId, "DEPRECATED", "Deprecado", "Rol inactivo",
+            InactiveRoleId, "Deprecado", "Rol inactivo",
             false, DateTime.UtcNow, null));
 
         _fakeReadService.SeedList(new PagedResponse<RoleListItemResponse>(
             [
-                new RoleListItemResponse(RoleId1, "ADMIN", "Administrador", true),
-                new RoleListItemResponse(RoleId2, "OWNER", "Propietario", true),
-                new RoleListItemResponse(InactiveRoleId, "DEPRECATED", "Deprecado", false)
+                new RoleListItemResponse(RoleId1, "Administrador", true),
+                new RoleListItemResponse(RoleId2, "Propietario", true),
+                new RoleListItemResponse(InactiveRoleId, "Deprecado", false)
             ],
             Page: 1,
             PageSize: 20,
             TotalItems: 3));
 
         _fakeRepository.Seed(Role.Create(
-            new RoleId(RoleId1), "ADMIN", "Administrador", "Rol de administrador del sistema"));
+            new RoleId(RoleId1), "Administrador", "Rol de administrador del sistema"));
 
         _fakeRepository.Seed(Role.Create(
-            new RoleId(RoleId2), "OWNER", "Propietario", null));
+            new RoleId(RoleId2), "Propietario", null));
 
         var inactiveRole = Role.Create(
-            new RoleId(InactiveRoleId), "DEPRECATED", "Deprecado", "Rol inactivo");
+            new RoleId(InactiveRoleId), "Deprecado", "Rol inactivo");
         inactiveRole.Deactivate();
         _fakeRepository.Seed(inactiveRole);
 
@@ -95,7 +95,6 @@ public class RolesControllerTests
     {
         var request = new
         {
-            Code = "MANAGER",
             Name = "Gerente",
             Description = "Rol de gerente de establecimiento."
         };
@@ -111,7 +110,6 @@ public class RolesControllerTests
     {
         var request = new
         {
-            Code = "CASHIER",
             Name = "Cajero",
             Description = (string?)null
         };
@@ -137,7 +135,6 @@ public class RolesControllerTests
     {
         var request = new
         {
-            Code = "",
             Name = "",
             Description = (string?)null
         };
@@ -149,19 +146,78 @@ public class RolesControllerTests
     }
 
     [Fact]
-    public async Task Create_DuplicateCode_ReturnsConflict()
+    public async Task Create_SameNameAsExistingRole_ReturnsCreated()
     {
+        // Al eliminar Code, Role dejó de tener una regla de unicidad: crear un
+        // segundo rol con el mismo nombre ya no produce 409.
         var request = new
         {
-            Code = "ADMIN",
-            Name = "Otro Admin",
+            Name = "Administrador",
             Description = (string?)null
         };
 
         HttpResponseMessage response = await _client.PostAsJsonAsync(
             BasePath, request, TestContext.Current.CancellationToken);
 
-        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_LegacyClientSendingCode_IgnoresItAndReturnsCreated()
+    {
+        // La política JSON por defecto de ASP.NET Core ignora los miembros no
+        // mapeados, por lo que un cliente antiguo que aún envía "code" no falla.
+        var request = new
+        {
+            Code = "MANAGER",
+            Name = "Gerente",
+            Description = (string?)null
+        };
+
+        HttpResponseMessage response = await _client.PostAsJsonAsync(
+            BasePath, request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_LegacyClientSendingCode_DoesNotPersistCode()
+    {
+        var request = new
+        {
+            Code = "MANAGER",
+            Name = "Gerente",
+            Description = (string?)null
+        };
+
+        HttpResponseMessage response = await _client.PostAsJsonAsync(
+            BasePath, request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        Role created = _fakeRepository.Added.Single(r => r.Name == "Gerente");
+
+        Assert.DoesNotContain(
+            created.GetType().GetProperties(),
+            property => property.Name.Contains("Code", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Create_ResponseBodyDoesNotContainCode()
+    {
+        var request = new
+        {
+            Name = "Gerente",
+            Description = (string?)null
+        };
+
+        HttpResponseMessage response = await _client.PostAsJsonAsync(
+            BasePath, request, TestContext.Current.CancellationToken);
+
+        JsonElement body = await response.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken);
+
+        Assert.False(body.TryGetProperty("code", out _));
     }
 
     // --- GET /api/v1/roles ---
@@ -186,9 +242,45 @@ public class RolesControllerTests
 
         Assert.True(body.TryGetProperty("items", out JsonElement items));
         Assert.Equal(3, items.GetArrayLength());
+        Assert.All(
+            items.EnumerateArray(),
+            item => Assert.False(item.TryGetProperty("code", out _)));
         Assert.True(body.TryGetProperty("page", out _));
         Assert.True(body.TryGetProperty("pageSize", out _));
         Assert.True(body.TryGetProperty("totalItems", out _));
+    }
+
+    [Fact]
+    public async Task List_LegacyCodeQueryParameter_IsIgnoredAndReturnsOk()
+    {
+        HttpResponseMessage response = await _client.GetAsync(
+            $"{BasePath}?code=ADMIN", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task List_SortByCode_IsRejectedLikeAnyUnsupportedSortField()
+    {
+        // "code" dejó de ser un campo de ordenamiento válido: debe comportarse
+        // igual que cualquier otro valor no soportado.
+        HttpResponseMessage codeResponse = await _client.GetAsync(
+            $"{BasePath}?sortBy=code", TestContext.Current.CancellationToken);
+
+        HttpResponseMessage unknownResponse = await _client.GetAsync(
+            $"{BasePath}?sortBy=unsupported", TestContext.Current.CancellationToken);
+
+        Assert.Equal(unknownResponse.StatusCode, codeResponse.StatusCode);
+        Assert.NotEqual(HttpStatusCode.OK, codeResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task List_SortByName_IsStillAccepted()
+    {
+        HttpResponseMessage response = await _client.GetAsync(
+            $"{BasePath}?sortBy=name", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     // --- GET /api/v1/roles/{id} ---
@@ -212,9 +304,28 @@ public class RolesControllerTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(RoleId1.ToString(), body.GetProperty("id").GetString());
-        Assert.Equal("ADMIN", body.GetProperty("code").GetString());
         Assert.Equal("Administrador", body.GetProperty("name").GetString());
         Assert.True(body.GetProperty("isActive").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetById_ResponseDoesNotContainCode()
+    {
+        HttpResponseMessage response = await _client.GetAsync(
+            $"{BasePath}/{RoleId1}", TestContext.Current.CancellationToken);
+
+        JsonElement body = await response.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken);
+
+        Assert.False(body.TryGetProperty("code", out _));
+
+        string[] properties = body.EnumerateObject()
+            .Select(property => property.Name)
+            .ToArray();
+
+        Assert.Equal(
+            ["id", "name", "description", "isActive", "createdAtUtc", "updatedAtUtc"],
+            properties);
     }
 
     [Fact]
@@ -339,17 +450,13 @@ public class RolesControllerTests
     {
         private readonly List<Role> _roles = [];
 
+        public IReadOnlyList<Role> Added => _roles;
+
         public void Seed(Role role) => _roles.Add(role);
 
         public Task<Role?> GetByIdAsync(
             RoleId id, CancellationToken cancellationToken)
             => Task.FromResult(_roles.FirstOrDefault(r => r.Id == id));
-
-        public Task<bool> ExistsByCodeAsync(
-            string normalizedCode, RoleId? excludingId, CancellationToken cancellationToken)
-            => Task.FromResult(_roles.Any(r =>
-                string.Equals(r.Code, normalizedCode, StringComparison.OrdinalIgnoreCase) &&
-                (excludingId is null || r.Id != excludingId.Value)));
 
         public Task AddAsync(
             Role role, CancellationToken cancellationToken)
