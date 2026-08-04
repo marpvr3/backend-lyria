@@ -101,6 +101,7 @@ docs/
 ### API
 
 - [EstablishmentCategories — API](docs/api/establishment-categories-api.md)
+- [Registro Móvil — API](docs/api/mobile-registrations-api.md)
 
 ### Decisiones arquitectónicas
 

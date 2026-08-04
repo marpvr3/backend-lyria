@@ -1,5 +1,6 @@
 using Lyria.Application;
 using Lyria.Application.Features.BranchSpecialSchedules;
+using Lyria.Application.Features.MobileRegistrations;
 using Lyria.Infrastructure;
 using Lyria.Infrastructure.Persistence;
 using Microsoft.OpenApi;
@@ -21,6 +22,12 @@ public static class ServiceCollectionExtensions
             .Bind(configuration.GetSection(DatabaseStartupOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
+
+        // El registro móvil se valida al invocar el caso de uso, no al arrancar:
+        // un ambiente que no expone ese flujo no debe impedir el inicio de la API.
+        // Una configuración ausente o inválida produce un error controlado en el endpoint.
+        services.AddOptions<MobileRegistrationOptions>()
+            .Bind(configuration.GetSection(MobileRegistrationOptions.SectionName));
 
         services.AddLyriaCors(configuration);
 

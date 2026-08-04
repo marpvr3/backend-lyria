@@ -77,10 +77,13 @@ public static class DependencyInjection
         services.AddScoped<IUserRestrictionRepository, UserRestrictionRepository>();
         services.AddScoped<IUserRestrictionReadService, UserRestrictionReadService>();
 
+        services.AddScoped<IMobileRegistrationWriter, MobileRegistrationWriter>();
+
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
 
         services.AddSingleton<ITimeZoneService, TimeZoneService>();
         services.AddSingleton<IBranchTimeZoneDefaults, BranchTimeZoneDefaults>();
+        services.AddSingleton<IMobileRegistrationDefaults, MobileRegistrationDefaults>();
 
         return services;
     }
