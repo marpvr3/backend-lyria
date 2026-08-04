@@ -17,17 +17,6 @@ internal sealed class FakeRoleRepository : IRoleRepository
         return Task.FromResult(found);
     }
 
-    public Task<bool> ExistsByCodeAsync(
-        string normalizedCode,
-        RoleId? excludingId,
-        CancellationToken cancellationToken)
-    {
-        bool exists = _roles.Any(r =>
-            string.Equals(r.Code, normalizedCode, StringComparison.OrdinalIgnoreCase) &&
-            (excludingId is null || r.Id != excludingId.Value));
-        return Task.FromResult(exists);
-    }
-
     public Task AddAsync(
         Role role,
         CancellationToken cancellationToken)

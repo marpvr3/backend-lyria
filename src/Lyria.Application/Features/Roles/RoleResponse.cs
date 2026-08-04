@@ -4,7 +4,6 @@ namespace Lyria.Application.Features.Roles;
 /// Detalle completo de un rol.
 /// </summary>
 /// <param name="Id">Identificador único del rol.</param>
-/// <param name="Code">Código único del rol.</param>
 /// <param name="Name">Nombre del rol.</param>
 /// <param name="Description">Descripción opcional del rol.</param>
 /// <param name="IsActive">Indica si el rol está activo.</param>
@@ -12,7 +11,6 @@ namespace Lyria.Application.Features.Roles;
 /// <param name="UpdatedAtUtc">Fecha y hora UTC de la última modificación.</param>
 public sealed record RoleResponse(
     Guid Id,
-    string Code,
     string Name,
     string? Description,
     bool IsActive,

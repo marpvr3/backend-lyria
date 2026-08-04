@@ -30,18 +30,15 @@ public sealed class RolesController(IMediator mediator) : ControllerBase
     /// <returns>Identificador del rol creado.</returns>
     /// <response code="201">Rol creado correctamente.</response>
     /// <response code="400">Datos de entrada inválidos.</response>
-    /// <response code="409">Ya existe un rol con el mismo código.</response>
     [HttpPost]
     [Consumes("application/json")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create(
         [FromBody] CreateRoleRequest request,
         CancellationToken cancellationToken)
     {
         var command = new CreateRoleCommand(
-            request.Code,
             request.Name,
             request.Description);
 
@@ -62,7 +59,6 @@ public sealed class RolesController(IMediator mediator) : ControllerBase
     /// Lista roles con filtros y paginación.
     /// </summary>
     /// <param name="search">Texto libre para buscar por nombre.</param>
-    /// <param name="code">Filtrar por código del rol.</param>
     /// <param name="isActive">Filtrar por estado activo/inactivo.</param>
     /// <param name="page">Número de página (por defecto 1).</param>
     /// <param name="pageSize">Cantidad de elementos por página (por defecto 20).</param>
@@ -77,7 +73,6 @@ public sealed class RolesController(IMediator mediator) : ControllerBase
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> List(
         [FromQuery] string? search,
-        [FromQuery] string? code,
         [FromQuery] bool? isActive,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
@@ -86,7 +81,7 @@ public sealed class RolesController(IMediator mediator) : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var query = new GetRolesQuery(
-            search, code, isActive, page, pageSize, sortBy, sortDirection);
+            search, isActive, page, pageSize, sortBy, sortDirection);
 
         PagedResponse<RoleListItemResponse> result =
             await mediator.Send(query, cancellationToken);
@@ -126,7 +121,6 @@ public sealed class RolesController(IMediator mediator) : ControllerBase
     /// <param name="cancellationToken">Token de cancelación.</param>
     /// <remarks>
     /// Reemplaza todos los campos editables del rol.
-    /// No se puede modificar el código del rol.
     /// </remarks>
     /// <response code="204">Rol actualizado correctamente.</response>
     /// <response code="400">Datos de entrada inválidos.</response>
@@ -189,11 +183,9 @@ public sealed class RolesController(IMediator mediator) : ControllerBase
 /// <summary>
 /// Datos para crear un rol.
 /// </summary>
-/// <param name="Code">Código único del rol.</param>
 /// <param name="Name">Nombre del rol.</param>
 /// <param name="Description">Descripción opcional del rol.</param>
 public sealed record CreateRoleRequest(
-    string Code,
     string Name,
     string? Description);
 

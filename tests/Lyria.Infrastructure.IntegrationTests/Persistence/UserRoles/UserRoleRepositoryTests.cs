@@ -117,6 +117,6 @@ public sealed class UserRoleRepositoryTests : IDisposable
     private static User CreateTestUser(string email = "test@example.com") =>
         User.Create(UserId.New(), "Juan", "Garcia", email, "hashed_pw", null, null, null);
 
-    private static Role CreateTestRole(string code = "TEST_ROLE") =>
-        Role.Create(RoleId.New(), code, "Test Role", null);
+    private static Role CreateTestRole(string name = "Test Role") =>
+        Role.Create(RoleId.New(), name, null);
 }

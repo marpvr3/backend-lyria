@@ -21,7 +21,7 @@ public sealed class SetRoleActiveStatusTests
     public async Task Handle_Activate_WhenInactive_Succeeds()
     {
         var roleId = RoleId.New();
-        var role = Role.Create(roleId, "ADMIN", "Administrador", null);
+        var role = Role.Create(roleId, "Administrador", null);
         role.Deactivate();
         _repository.Seed(role);
 
@@ -38,7 +38,7 @@ public sealed class SetRoleActiveStatusTests
     public async Task Handle_Deactivate_WhenActive_Succeeds()
     {
         var roleId = RoleId.New();
-        _repository.Seed(Role.Create(roleId, "ADMIN", "Administrador", null));
+        _repository.Seed(Role.Create(roleId, "Administrador", null));
 
         var command = new SetRoleActiveStatusCommand(roleId.Value, false);
 
@@ -53,7 +53,7 @@ public sealed class SetRoleActiveStatusTests
     public async Task Handle_WhenAlreadyActive_ReturnsError()
     {
         var roleId = RoleId.New();
-        _repository.Seed(Role.Create(roleId, "ADMIN", "Administrador", null));
+        _repository.Seed(Role.Create(roleId, "Administrador", null));
 
         // Role starts as Active, trying to activate again should fail
         var command = new SetRoleActiveStatusCommand(roleId.Value, true);

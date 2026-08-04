@@ -1,4 +1,4 @@
-using Lyria.Application.Common.Errors;
+using System.Reflection;
 using Lyria.Application.Common.Results;
 using Lyria.Application.Features.Roles.Create;
 using Lyria.Application.UnitTests.Fakes;
@@ -18,43 +18,61 @@ public sealed class CreateRoleTests
     }
 
     [Fact]
-    public async Task Handle_WhenCodeDoesNotExist_CreatesRole()
+    public async Task Handle_WithNameAndDescription_CreatesRole()
     {
-        var command = new CreateRoleCommand("ADMIN", "Administrador", "Rol de administrador");
+        var command = new CreateRoleCommand("Administrador", "Rol de administrador");
 
         Result<RoleId> result = await _handler.Handle(command, CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Single(_repository.Added);
+        Assert.Equal("Administrador", _repository.Added[0].Name);
+        Assert.Equal("Rol de administrador", _repository.Added[0].Description);
         Assert.Equal(1, _repository.SaveChangesCallCount);
     }
 
     [Fact]
-    public async Task Handle_WhenCodeExists_ReturnsConflict()
+    public async Task Handle_WithoutDescription_CreatesRole()
     {
-        _repository.Seed(Role.Create(
-            RoleId.New(), "ADMIN", "Administrador", null));
-
-        var command = new CreateRoleCommand("ADMIN", "Otro Admin", null);
+        var command = new CreateRoleCommand("Administrador", null);
 
         Result<RoleId> result = await _handler.Handle(command, CancellationToken.None);
 
-        Assert.True(result.IsFailure);
-        Assert.Equal(ErrorType.Conflict, result.Error.Type);
-        Assert.Equal("Roles.CodeAlreadyExists", result.Error.Code);
+        Assert.True(result.IsSuccess);
+        Assert.Null(_repository.Added[0].Description);
     }
 
     [Fact]
-    public async Task Handle_NormalizesCodeBeforeCheckingDuplicate()
+    public async Task Handle_NormalizesNameBeforePersisting()
     {
-        _repository.Seed(Role.Create(
-            RoleId.New(), "ADMIN", "Administrador", null));
-
-        var command = new CreateRoleCommand("  admin  ", "Otro Admin", null);
+        var command = new CreateRoleCommand("  Super   Admin  ", null);
 
         Result<RoleId> result = await _handler.Handle(command, CancellationToken.None);
 
-        Assert.True(result.IsFailure);
-        Assert.Equal(ErrorType.Conflict, result.Error.Type);
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Super Admin", _repository.Added[0].Name);
+    }
+
+    [Fact]
+    public async Task Handle_WithExistingRoleName_DoesNotConflict()
+    {
+        _repository.Seed(Role.Create(RoleId.New(), "Administrador", null));
+
+        var command = new CreateRoleCommand("Administrador", null);
+
+        Result<RoleId> result = await _handler.Handle(command, CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public void Command_DoesNotExposeCode()
+    {
+        string[] parameters = typeof(CreateRoleCommand)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Select(p => p.Name)
+            .ToArray();
+
+        Assert.Equal(["Name", "Description"], parameters);
     }
 }

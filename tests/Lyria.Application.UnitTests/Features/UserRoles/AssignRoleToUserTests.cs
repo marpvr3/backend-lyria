@@ -38,7 +38,7 @@ public sealed class AssignRoleToUserTests
             userId, "Juan", "Pérez", "juan@example.com", "hash123", null, null, null));
 
         var roleId = RoleId.New();
-        _roleRepository.Seed(Role.Create(roleId, "ADMIN", "Administrador", null));
+        _roleRepository.Seed(Role.Create(roleId, "Administrador", null));
 
         var command = new AssignRoleToUserCommand(
             userId.Value, roleId.Value, "Global", null, null);
@@ -54,7 +54,7 @@ public sealed class AssignRoleToUserTests
     public async Task Handle_WhenUserNotFound_ReturnsError()
     {
         var roleId = RoleId.New();
-        _roleRepository.Seed(Role.Create(roleId, "ADMIN", "Administrador", null));
+        _roleRepository.Seed(Role.Create(roleId, "Administrador", null));
 
         var command = new AssignRoleToUserCommand(
             Guid.NewGuid(), roleId.Value, "Global", null, null);
@@ -91,7 +91,7 @@ public sealed class AssignRoleToUserTests
             userId, "Juan", "Pérez", "juan@example.com", "hash123", null, null, null));
 
         var roleId = RoleId.New();
-        _roleRepository.Seed(Role.Create(roleId, "ADMIN", "Administrador", null));
+        _roleRepository.Seed(Role.Create(roleId, "Administrador", null));
 
         var command = new AssignRoleToUserCommand(
             userId.Value, roleId.Value, "InvalidScope", null, null);
@@ -111,7 +111,7 @@ public sealed class AssignRoleToUserTests
             userId, "Juan", "Pérez", "juan@example.com", "hash123", null, null, null));
 
         var roleId = RoleId.New();
-        _roleRepository.Seed(Role.Create(roleId, "ADMIN", "Administrador", null));
+        _roleRepository.Seed(Role.Create(roleId, "Administrador", null));
 
         var establishmentId = Guid.NewGuid();
         _establishmentReadService.Seed(new Application.Features.Establishments.EstablishmentResponse(
@@ -144,7 +144,7 @@ public sealed class AssignRoleToUserTests
             userId, "Juan", "Pérez", "juan@example.com", "hash123", null, null, null));
 
         var roleId = RoleId.New();
-        _roleRepository.Seed(Role.Create(roleId, "ADMIN", "Administrador", null));
+        _roleRepository.Seed(Role.Create(roleId, "Administrador", null));
 
         var establishmentId = Guid.NewGuid();
         _establishmentReadService.Seed(new Application.Features.Establishments.EstablishmentResponse(

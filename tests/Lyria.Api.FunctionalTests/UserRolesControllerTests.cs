@@ -56,7 +56,7 @@ public class UserRolesControllerTests
 
         // Seed role
         var role = Role.Create(
-            new RoleId(RoleId1), "ADMIN", "Administrador", "Rol de administrador");
+            new RoleId(RoleId1), "Administrador", "Rol de administrador");
         fakeRoleRepository.Seed(role);
 
         // Seed user role
@@ -71,7 +71,7 @@ public class UserRolesControllerTests
         fakeUserRoleRepository.Seed(userRole);
 
         fakeUserRoleReadService.Seed(UserId1, new UserRoleResponse(
-            UserRoleId1, UserId1, RoleId1, "ADMIN", "Administrador",
+            UserRoleId1, UserId1, RoleId1, "Administrador",
             "Global", null, null, true, DateTime.UtcNow, null));
 
         WebApplicationFactory<Program> configuredFactory = factory.WithWebHostBuilder(builder =>
@@ -124,8 +124,24 @@ public class UserRolesControllerTests
 
         Assert.Single(items);
         Assert.Equal(UserRoleId1.ToString(), items[0].GetProperty("id").GetString());
-        Assert.Equal("ADMIN", items[0].GetProperty("roleCode").GetString());
+        Assert.Equal(RoleId1.ToString(), items[0].GetProperty("roleId").GetString());
+        Assert.Equal("Administrador", items[0].GetProperty("roleName").GetString());
         Assert.Equal("Global", items[0].GetProperty("scopeType").GetString());
+    }
+
+    [Fact]
+    public async Task GetByUserId_ResponseDoesNotContainRoleCode()
+    {
+        HttpResponseMessage response = await _client.GetAsync(
+            BasePath(UserId1), TestContext.Current.CancellationToken);
+
+        JsonElement[] items = (await response.Content.ReadFromJsonAsync<JsonElement[]>(
+            TestContext.Current.CancellationToken))!;
+
+        Assert.Single(items);
+        Assert.False(items[0].TryGetProperty("roleCode", out _));
+        Assert.True(items[0].TryGetProperty("roleId", out _));
+        Assert.True(items[0].TryGetProperty("roleName", out _));
     }
 
     [Fact]
@@ -310,12 +326,6 @@ public class UserRolesControllerTests
             RoleId id, CancellationToken cancellationToken)
             => Task.FromResult(_roles.FirstOrDefault(r => r.Id == id));
 
-        public Task<bool> ExistsByCodeAsync(
-            string normalizedCode, RoleId? excludingId, CancellationToken cancellationToken)
-            => Task.FromResult(_roles.Any(r =>
-                string.Equals(r.Code, normalizedCode, StringComparison.OrdinalIgnoreCase) &&
-                (excludingId is null || r.Id != excludingId.Value)));
-
         public Task AddAsync(
             Role role, CancellationToken cancellationToken)
         {
@@ -454,7 +464,7 @@ public class UserRolesBranchScopeControllerTests
         fakeUserRepo.Seed(user);
 
         var role = Role.Create(
-            new RoleId(RoleId1), "MANAGER", "Gerente", null);
+            new RoleId(RoleId1), "Gerente", null);
         fakeRoleRepo.Seed(role);
 
         fakeEstService.Seed(new EstablishmentResponse(
@@ -542,8 +552,6 @@ public class UserRolesBranchScopeControllerTests
         public void Seed(Role role) => _roles.Add(role);
         public Task<Role?> GetByIdAsync(RoleId id, CancellationToken ct)
             => Task.FromResult(_roles.FirstOrDefault(r => r.Id == id));
-        public Task<bool> ExistsByCodeAsync(string code, RoleId? excludingId, CancellationToken ct)
-            => Task.FromResult(false);
         public Task AddAsync(Role role, CancellationToken ct) { _roles.Add(role); return Task.CompletedTask; }
         public Task SaveChangesAsync(CancellationToken ct) => Task.CompletedTask;
     }

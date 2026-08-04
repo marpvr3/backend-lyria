@@ -33,18 +33,87 @@ public sealed class RoleConfigurationTests : IDisposable
     }
 
     [Fact]
-    public void Code_ShouldHaveUniqueIndex()
+    public void Configuration_ShouldMapExpectedColumns()
     {
         using var context = _fixture.CreateContext();
 
         var entityType = context.Model.FindEntityType(typeof(Role))!;
-        var indexes = entityType.GetIndexes().ToList();
 
-        var codeIndex = indexes.SingleOrDefault(
-            i => i.GetDatabaseName() == "UX_Roles_Codigo");
+        string[] columns = entityType.GetProperties()
+            .Select(p => p.GetColumnName())
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
 
-        Assert.NotNull(codeIndex);
-        Assert.True(codeIndex.IsUnique);
+        string[] expected =
+        [
+            "Activo",
+            "Descripcion",
+            "FechaActualizacion",
+            "FechaCreacion",
+            "Nombre",
+            "RolId"
+        ];
+
+        Assert.Equal(expected, columns);
+    }
+
+    [Fact]
+    public void Configuration_ShouldNotMapCode()
+    {
+        using var context = _fixture.CreateContext();
+
+        var entityType = context.Model.FindEntityType(typeof(Role))!;
+
+        Assert.Null(entityType.FindProperty("Code"));
+        Assert.DoesNotContain(
+            entityType.GetProperties(),
+            p => p.GetColumnName() == "Codigo");
+    }
+
+    [Fact]
+    public void Configuration_ShouldNotDeclareAnyCodeIndex()
+    {
+        using var context = _fixture.CreateContext();
+
+        var entityType = context.Model.FindEntityType(typeof(Role))!;
+
+        Assert.DoesNotContain(
+            entityType.GetIndexes(),
+            i => i.GetDatabaseName()!.Contains("Codigo", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void PhysicalTable_ShouldNotContainCodigoColumn()
+    {
+        using var context = _fixture.CreateContext();
+
+        List<string> columns = ReadPhysicalColumns(context);
+
+        Assert.DoesNotContain("Codigo", columns);
+        Assert.Contains("RolId", columns);
+        Assert.Contains("Nombre", columns);
+        Assert.Contains("Descripcion", columns);
+        Assert.Contains("Activo", columns);
+        Assert.Contains("FechaCreacion", columns);
+        Assert.Contains("FechaActualizacion", columns);
+    }
+
+    private static List<string> ReadPhysicalColumns(Lyria.Infrastructure.Persistence.LyriaDbContext context)
+    {
+        var connection = context.Database.GetDbConnection();
+
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA table_info('Roles');";
+
+        var columns = new List<string>();
+        using var reader = command.ExecuteReader();
+
+        while (reader.Read())
+        {
+            columns.Add(reader.GetString(1));
+        }
+
+        return columns;
     }
 
     public void Dispose()

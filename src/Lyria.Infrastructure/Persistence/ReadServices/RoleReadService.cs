@@ -18,7 +18,6 @@ internal sealed class RoleReadService(LyriaDbContext dbContext)
             .Where(r => r.Id == id)
             .Select(r => new RoleResponse(
                 r.Id.Value,
-                r.Code,
                 r.Name,
                 r.Description,
                 r.IsActive,
@@ -38,15 +37,8 @@ internal sealed class RoleReadService(LyriaDbContext dbContext)
         {
             string search = filter.Search.Trim();
             query = query.Where(r =>
-                r.Code.Contains(search) ||
                 r.Name.Contains(search) ||
                 (r.Description != null && r.Description.Contains(search)));
-        }
-
-        if (!string.IsNullOrWhiteSpace(filter.Code))
-        {
-            string code = filter.Code.Trim();
-            query = query.Where(r => r.Code == code);
         }
 
         if (filter.IsActive.HasValue)
@@ -61,9 +53,6 @@ internal sealed class RoleReadService(LyriaDbContext dbContext)
 
         IOrderedQueryable<Role> orderedQuery = filter.SortBy?.ToLowerInvariant() switch
         {
-            "code" => descending
-                ? query.OrderByDescending(r => r.Code)
-                : query.OrderBy(r => r.Code),
             "createdatutc" => descending
                 ? query.OrderByDescending(r => r.CreatedAtUtc)
                 : query.OrderBy(r => r.CreatedAtUtc),
@@ -77,7 +66,6 @@ internal sealed class RoleReadService(LyriaDbContext dbContext)
             .Take(filter.PageSize)
             .Select(r => new RoleListItemResponse(
                 r.Id.Value,
-                r.Code,
                 r.Name,
                 r.IsActive))
             .ToListAsync(cancellationToken);

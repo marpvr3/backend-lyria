@@ -54,7 +54,7 @@ Antes de revisar cada concepto, se establecen los criterios de clasificación ut
 | **Tipo** | Aggregate root |
 | **Identidad conceptual** | Un conjunto nombrado de permisos que puede asignarse a un usuario. Los roles son definidos por administradores del sistema, no por los usuarios finales. |
 | **Responsabilidad** | Agrupar referencias a permisos bajo un nombre funcional. Permitir agregar y revocar `PermissionId` del conjunto controlado. Prevenir duplicados en la colección de permisos. |
-| **Invariantes principales** | El código del rol es único. Un rol debe tener al menos un permiso para ser asignable. No puede contener el mismo `PermissionId` dos veces. Los roles del sistema (ej. `SystemAdmin`) no pueden eliminarse ni modificarse desde la API pública. |
+| **Invariantes principales** | El rol se identifica internamente por `RoleId` y se presenta mediante `Name`. Un rol debe tener al menos un permiso para ser asignable. No puede contener el mismo `PermissionId` dos veces. Los roles del sistema (ej. `SystemAdmin`) no pueden eliminarse ni modificarse desde la API pública. |
 | **Dependencias permitidas** | Ninguna externa al módulo. Mantiene un conjunto controlado de `PermissionId` como referencias. No crea ni elimina el catálogo de `Permission`. |
 | **Decisión MVP** | MVP. Necesario para diferenciar administradores de usuarios regulares y dueños de establecimientos. |
 

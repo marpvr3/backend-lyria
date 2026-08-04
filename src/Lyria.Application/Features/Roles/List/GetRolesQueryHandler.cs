@@ -14,7 +14,6 @@ public sealed class GetRolesQueryHandler(
     {
         var filter = new RoleListFilter(
             query.Search,
-            query.Code,
             query.IsActive,
             query.Page,
             query.PageSize,

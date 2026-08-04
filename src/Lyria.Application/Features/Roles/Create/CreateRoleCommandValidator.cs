@@ -8,14 +8,6 @@ public sealed class CreateRoleCommandValidator
 {
     public CreateRoleCommandValidator()
     {
-        RuleFor(x => x.Code)
-            .NotEmpty()
-            .WithMessage("El código es obligatorio.")
-            .MinimumLength(Role.CodeMinLength)
-            .WithMessage($"El código debe tener al menos {Role.CodeMinLength} caracteres.")
-            .MaximumLength(Role.CodeMaxLength)
-            .WithMessage($"El código no puede superar los {Role.CodeMaxLength} caracteres.");
-
         RuleFor(x => x.Name)
             .NotEmpty()
             .WithMessage("El nombre es obligatorio.")

@@ -8,11 +8,6 @@ public interface IRoleRepository
         RoleId id,
         CancellationToken cancellationToken);
 
-    Task<bool> ExistsByCodeAsync(
-        string normalizedCode,
-        RoleId? excludingId,
-        CancellationToken cancellationToken);
-
     Task AddAsync(
         Role role,
         CancellationToken cancellationToken);

@@ -28,7 +28,6 @@ public sealed class RoleReadServiceTests : IDisposable
 
             Assert.NotNull(result);
             Assert.Equal(role.Id.Value, result.Id);
-            Assert.Equal("TEST_ROLE", result.Code);
             Assert.Equal("Test Role", result.Name);
             Assert.Null(result.Description);
             Assert.True(result.IsActive);
@@ -52,16 +51,16 @@ public sealed class RoleReadServiceTests : IDisposable
         await using (var context = _fixture.CreateContext())
         {
             context.Set<Role>().AddRange(
-                CreateTestRole("ROLE_A"),
-                CreateTestRole("ROLE_B"),
-                CreateTestRole("ROLE_C"));
+                CreateTestRole("Role A"),
+                CreateTestRole("Role B"),
+                CreateTestRole("Role C"));
             await context.SaveChangesAsync(CancellationToken.None);
         }
 
         await using (var context = _fixture.CreateContext())
         {
             var readService = new RoleReadService(context);
-            var filter = new RoleListFilter(null, null, null, 1, 10, null, null);
+            var filter = new RoleListFilter(null, null, 1, 10, null, null);
 
             var result = await readService.ListAsync(filter, CancellationToken.None);
 
@@ -75,8 +74,8 @@ public sealed class RoleReadServiceTests : IDisposable
     [Fact]
     public async Task ListAsync_Should_Filter_By_IsActive()
     {
-        var activeRole = CreateTestRole("ACTIVE_ROLE");
-        var inactiveRole = CreateTestRole("INACTIVE_ROLE");
+        var activeRole = CreateTestRole("Active Role");
+        var inactiveRole = CreateTestRole("Inactive Role");
         inactiveRole.Deactivate();
 
         await using (var context = _fixture.CreateContext())
@@ -88,7 +87,7 @@ public sealed class RoleReadServiceTests : IDisposable
         await using (var context = _fixture.CreateContext())
         {
             var readService = new RoleReadService(context);
-            var filter = new RoleListFilter(null, null, true, 1, 10, null, null);
+            var filter = new RoleListFilter(null, true, 1, 10, null, null);
 
             var result = await readService.ListAsync(filter, CancellationToken.None);
 
@@ -105,7 +104,7 @@ public sealed class RoleReadServiceTests : IDisposable
             for (int i = 1; i <= 5; i++)
             {
                 context.Set<Role>().Add(
-                    CreateTestRole($"ROLE_{i:D2}"));
+                    CreateTestRole($"Role {i:D2}"));
             }
 
             await context.SaveChangesAsync(CancellationToken.None);
@@ -114,7 +113,7 @@ public sealed class RoleReadServiceTests : IDisposable
         await using (var context = _fixture.CreateContext())
         {
             var readService = new RoleReadService(context);
-            var filter = new RoleListFilter(null, null, null, 2, 2, null, null);
+            var filter = new RoleListFilter(null, null, 2, 2, null, null);
 
             var result = await readService.ListAsync(filter, CancellationToken.None);
 
@@ -130,6 +129,6 @@ public sealed class RoleReadServiceTests : IDisposable
         _fixture.Dispose();
     }
 
-    private static Role CreateTestRole(string code = "TEST_ROLE") =>
-        Role.Create(RoleId.New(), code, "Test Role", null);
+    private static Role CreateTestRole(string name = "Test Role") =>
+        Role.Create(RoleId.New(), name, null);
 }
