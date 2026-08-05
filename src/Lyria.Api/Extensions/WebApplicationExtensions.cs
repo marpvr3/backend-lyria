@@ -68,6 +68,16 @@ public static class WebApplicationExtensions
         // CORS debe ejecutarse después de UseRouting y antes de la autorización.
         app.UseCors(CorsExtensions.PolicyName);
 
+        // El limitador se ejecuta después de UseRouting para poder leer del endpoint
+        // seleccionado la política nombrada que declara, y antes de la autenticación
+        // para no gastar trabajo criptográfico en solicitudes que ya se van a rechazar.
+        // Solo afecta a los endpoints que declaran [EnableRateLimiting]: no hay límite global.
+        app.UseRateLimiter();
+
+        // La autenticación debe preceder a la autorización, y ambas a MapControllers.
+        app.UseAuthentication();
+        app.UseAuthorization();
+
         app.UseSwagger();
 
         app.UseSwaggerUI(options =>

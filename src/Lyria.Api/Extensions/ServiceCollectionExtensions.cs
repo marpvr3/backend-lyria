@@ -1,8 +1,11 @@
+using Lyria.Api.Security;
 using Lyria.Application;
+using Lyria.Application.Abstractions.Security;
 using Lyria.Application.Features.BranchSpecialSchedules;
 using Lyria.Application.Features.MobileRegistrations;
 using Lyria.Infrastructure;
 using Lyria.Infrastructure.Persistence;
+using Lyria.Infrastructure.Security;
 using Microsoft.OpenApi;
 
 namespace Lyria.Api.Extensions;
@@ -29,7 +32,20 @@ public static class ServiceCollectionExtensions
         services.AddOptions<MobileRegistrationOptions>()
             .Bind(configuration.GetSection(MobileRegistrationOptions.SectionName));
 
+        // La configuración JWT sí se valida al arrancar: sin ella la API no puede
+        // emitir ni validar access tokens, y arrancar sin validarla llevaría a emitir
+        // tokens con una clave ausente o demasiado corta.
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         services.AddLyriaCors(configuration);
+        services.AddLyriaAuthentication();
+        services.AddLyriaRateLimiting(configuration);
+
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUser, CurrentUser>();
 
         services.AddApplication();
         services.AddInfrastructure(configuration);
@@ -47,9 +63,32 @@ public static class ServiceCollectionExtensions
                 Description =
                     "API REST para la gestión de establecimientos gastronómicos " +
                     "y sus categorías en la plataforma Lyria.\n\n" +
-                    "⚠️ Esta API no cuenta con autenticación. " +
-                    "No exponer en entornos de producción sin un gateway de seguridad."
+                    "Los endpoints de la aplicación móvil marcados con candado requieren " +
+                    "un access token JWT (`Authorization: Bearer {accessToken}`), que se " +
+                    "obtiene en `POST /api/v1/auth/login`.\n\n" +
+                    "⚠️ Los endpoints administrativos y públicos siguen sin autenticación. " +
+                    "No exponer en producción sin un gateway de seguridad.\n\n" +
+                    "⚠️ Credenciales y tokens solo deben transmitirse sobre HTTPS."
             });
+
+            // Esquema Bearer para poder autorizar solicitudes desde la propia interfaz.
+            options.AddSecurityDefinition(
+                BearerSecurityOperationFilter.SchemeName,
+                new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description =
+                        "Access token JWT obtenido en POST /api/v1/auth/login. " +
+                        "Introduzca únicamente el token: el prefijo 'Bearer' se agrega automáticamente."
+                });
+
+            // El requisito de seguridad se aplica por operación, no de forma global:
+            // login, refresh, logout, el registro móvil y el catálogo público son anónimos.
+            options.OperationFilter<BearerSecurityOperationFilter>();
 
             string basePath = AppContext.BaseDirectory;
 
