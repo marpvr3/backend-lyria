@@ -451,6 +451,11 @@ public class UsersControllerTests
             UserId id, CancellationToken cancellationToken)
             => Task.FromResult(_users.FirstOrDefault(u => u.Id == id));
 
+        public Task<User?> GetByEmailAsync(
+            string normalizedEmail, CancellationToken cancellationToken)
+            => Task.FromResult(_users.FirstOrDefault(u =>
+                string.Equals(u.Email, normalizedEmail, StringComparison.OrdinalIgnoreCase)));
+
         public Task<bool> ExistsByEmailAsync(
             string normalizedEmail, UserId? excludingId, CancellationToken cancellationToken)
             => Task.FromResult(_users.Any(u =>
@@ -490,6 +495,14 @@ public class UsersControllerTests
 
     private sealed class FakePasswordHasher : IPasswordHasher
     {
+        public string NonMatchingHash => "hash-que-nunca-coincide";
+
         public string Hash(string password) => "hashed_" + password;
+
+        public PasswordVerificationOutcome Verify(
+            string hashedPassword, string providedPassword) =>
+            string.Equals(hashedPassword, Hash(providedPassword), StringComparison.Ordinal)
+                ? PasswordVerificationOutcome.Success
+                : PasswordVerificationOutcome.Failed;
     }
 }

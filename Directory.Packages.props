@@ -24,7 +24,18 @@
   </ItemGroup>
 
   <ItemGroup Label="ASP.NET Core">
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+  </ItemGroup>
+
+  <!-- Emisión del access token JWT desde Infrastructure. La validación del token en
+       Api la aporta Microsoft.AspNetCore.Authentication.JwtBearer, que depende de la
+       misma familia Microsoft.IdentityModel.
+       La versión se alinea con la que ya exige el grafo transitivo
+       (Microsoft.Data.SqlClient 7.0.1 -> Microsoft.IdentityModel.JsonWebTokens >= 8.16.0)
+       para no provocar un downgrade (NU1109). -->
+  <ItemGroup Label="Identity model">
+    <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.16.0" />
   </ItemGroup>
 
   <!-- Swashbuckle.AspNetCore depende transitivamente de Microsoft.OpenApi.

@@ -79,7 +79,15 @@ public static class DependencyInjection
 
         services.AddScoped<IMobileRegistrationWriter, MobileRegistrationWriter>();
 
+        services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
+        services.AddScoped<IAuthenticationSessionWriter, AuthenticationSessionWriter>();
+
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
+
+        // JwtOptions se enlaza y valida en el composition root de Api, junto al resto
+        // de las opciones de la aplicación.
+        services.AddSingleton<IAccessTokenService, JwtAccessTokenService>();
+        services.AddSingleton<IRefreshTokenGenerator, RefreshTokenGenerator>();
 
         services.AddSingleton<ITimeZoneService, TimeZoneService>();
         services.AddSingleton<IBranchTimeZoneDefaults, BranchTimeZoneDefaults>();

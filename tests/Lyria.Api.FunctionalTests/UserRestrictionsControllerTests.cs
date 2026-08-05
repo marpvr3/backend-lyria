@@ -409,6 +409,11 @@ public class UserRestrictionsControllerTests
         public Task<User?> GetByIdAsync(UserId id, CancellationToken cancellationToken)
             => Task.FromResult(_users.FirstOrDefault(u => u.Id == id));
 
+        public Task<User?> GetByEmailAsync(
+            string normalizedEmail, CancellationToken cancellationToken)
+            => Task.FromResult(_users.FirstOrDefault(u =>
+                string.Equals(u.Email, normalizedEmail, StringComparison.OrdinalIgnoreCase)));
+
         public Task<bool> ExistsByEmailAsync(
             string normalizedEmail, UserId? excludingId, CancellationToken cancellationToken)
             => Task.FromResult(false);

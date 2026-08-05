@@ -102,6 +102,7 @@ docs/
 
 - [EstablishmentCategories — API](docs/api/establishment-categories-api.md)
 - [Registro Móvil — API](docs/api/mobile-registrations-api.md)
+- [Autenticación Móvil — API](docs/api/authentication-api.md)
 
 ### Decisiones arquitectónicas
 
@@ -143,6 +144,22 @@ La estructura de la base de datos se actualiza aplicando las migraciones EF Core
 | (sin configurar) | `false` (predeterminado) | La API no modifica la base de datos al iniciar |
 
 Se configura una sola vez en el servidor y requiere reiniciar la API para tomar efecto. Detalles, limitaciones y permisos SQL requeridos: [Migraciones automáticas al iniciar la API](docs/operations/database-migrations-on-startup.md).
+
+### Autenticación móvil
+
+La API valida access tokens JWT en los endpoints protegidos. La configuración se valida al arrancar: **sin `Jwt__SigningKey` la API no inicia**.
+
+| Variable de entorno | Valor | Efecto |
+|---------------------|-------|--------|
+| `Jwt__Issuer` | `Lyria.Api` | Emisor de los access tokens |
+| `Jwt__Audience` | `Lyria.Mobile` | Audiencia esperada |
+| `Jwt__SigningKey` | *(secreto)* | Clave de firma HMAC. Mínimo 32 caracteres |
+| `Jwt__AccessTokenMinutes` | `15` | Vigencia del access token |
+| `Jwt__RefreshTokenDays` | `30` | Vigencia del refresh token |
+
+La clave de firma se suministra **únicamente** por variable de entorno y nunca se versiona. Generarla con `openssl rand -base64 64`.
+
+> ⚠️ **HTTPS obligatorio.** Contraseñas y tokens no deben viajar por HTTP plano. El repositorio no incluye hoy configuración TLS (ni `UseHttpsRedirection`, ni `ForwardedHeaders`, ni certificados), y la API pública está expuesta solo sobre HTTP. **El despliegue de la autenticación queda bloqueado hasta configurar HTTPS.** Detalles: [Autenticación Móvil — API](docs/api/authentication-api.md).
 
 ## Convenciones
 
