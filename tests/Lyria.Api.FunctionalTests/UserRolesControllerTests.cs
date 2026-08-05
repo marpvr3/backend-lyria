@@ -299,6 +299,11 @@ public class UserRolesControllerTests
             UserId id, CancellationToken cancellationToken)
             => Task.FromResult(_users.FirstOrDefault(u => u.Id == id));
 
+        public Task<User?> GetByEmailAsync(
+            string normalizedEmail, CancellationToken cancellationToken)
+            => Task.FromResult(_users.FirstOrDefault(u =>
+                string.Equals(u.Email, normalizedEmail, StringComparison.OrdinalIgnoreCase)));
+
         public Task<bool> ExistsByEmailAsync(
             string normalizedEmail, UserId? excludingId, CancellationToken cancellationToken)
             => Task.FromResult(_users.Any(u =>
@@ -540,6 +545,9 @@ public class UserRolesBranchScopeControllerTests
         public void Seed(User user) => _users.Add(user);
         public Task<User?> GetByIdAsync(UserId id, CancellationToken ct)
             => Task.FromResult(_users.FirstOrDefault(u => u.Id == id));
+        public Task<User?> GetByEmailAsync(string normalizedEmail, CancellationToken ct)
+            => Task.FromResult(_users.FirstOrDefault(u =>
+                string.Equals(u.Email, normalizedEmail, StringComparison.OrdinalIgnoreCase)));
         public Task<bool> ExistsByEmailAsync(string email, UserId? excludingId, CancellationToken ct)
             => Task.FromResult(false);
         public Task AddAsync(User user, CancellationToken ct) { _users.Add(user); return Task.CompletedTask; }

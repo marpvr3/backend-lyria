@@ -709,6 +709,48 @@ namespace Lyria.Infrastructure.Persistence.Migrations
                     b.ToTable("Servicios", (string)null);
                 });
 
+            modelBuilder.Entity("Lyria.Domain.Users.RefreshTokens.UserRefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("RefreshTokenId");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("FechaCreacion");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("FechaExpiracion");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("FechaRevocacion");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("TokenHash");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("UsuarioId");
+
+                    b.HasKey("Id")
+                        .HasName("PK_UsuarioRefreshTokens");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("UX_UsuarioRefreshTokens_TokenHash");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_UsuarioRefreshTokens_UsuarioId");
+
+                    b.ToTable("UsuarioRefreshTokens", (string)null);
+                });
+
             modelBuilder.Entity("Lyria.Domain.Users.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -961,6 +1003,16 @@ namespace Lyria.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("FK_Establecimientos_CategoriasEstablecimiento_CategoriaId");
+                });
+
+            modelBuilder.Entity("Lyria.Domain.Users.RefreshTokens.UserRefreshToken", b =>
+                {
+                    b.HasOne("Lyria.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_UsuarioRefreshTokens_Usuarios_UsuarioId");
                 });
 
             modelBuilder.Entity("Lyria.Domain.Users.UserRestrictions.UserRestriction", b =>

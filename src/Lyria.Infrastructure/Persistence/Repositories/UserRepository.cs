@@ -15,6 +15,16 @@ internal sealed class UserRepository(LyriaDbContext dbContext)
             .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
     }
 
+    public async Task<User?> GetByEmailAsync(
+        string normalizedEmail,
+        CancellationToken cancellationToken)
+    {
+        // Con seguimiento: el inicio de sesión actualiza la última conexión y, si el
+        // hash quedó obsoleto, también la contraseña.
+        return await dbContext.Set<User>()
+            .FirstOrDefaultAsync(u => u.Email == normalizedEmail, cancellationToken);
+    }
+
     public async Task<bool> ExistsByEmailAsync(
         string normalizedEmail,
         UserId? excludingId,
