@@ -7,10 +7,12 @@ using Lyria.Application.Features.Users.ChangePassword;
 using Lyria.Application.Features.Users.ChangeStatus;
 using Lyria.Application.Features.Users.Create;
 using Lyria.Application.Features.Users.GetById;
+using Lyria.Application.Features.Users.GetCurrent;
 using Lyria.Application.Features.Users.List;
 using Lyria.Application.Features.Users.Update;
 using Lyria.Domain.Users;
 using Mediator;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Lyria.Api.Controllers.V1;
@@ -100,6 +102,36 @@ public sealed class UsersController(IMediator mediator) : ControllerBase
             await mediator.Send(query, cancellationToken);
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Obtiene el perfil del usuario autenticado.
+    /// </summary>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>Perfil mínimo del usuario autenticado.</returns>
+    /// <remarks>
+    /// Requiere la cabecera <c>Authorization: Bearer {accessToken}</c>. La identidad se
+    /// resuelve exclusivamente desde el claim <c>sub</c> del access token: no admite
+    /// identificadores enviados por el cliente.
+    ///
+    /// Las restricciones alimenticias, los favoritos y las reseñas se incorporarán en
+    /// requerimientos posteriores.
+    /// </remarks>
+    /// <response code="200">Perfil del usuario autenticado.</response>
+    /// <response code="401">La solicitud no presenta un access token válido.</response>
+    [HttpGet("me")]
+    [Authorize]
+    [ProducesResponseType<CurrentUserResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetCurrent(CancellationToken cancellationToken)
+    {
+        var query = new GetCurrentUserQuery();
+
+        Result<CurrentUserResponse> result = await mediator.Send(query, cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : result.ToProblemResult();
     }
 
     /// <summary>

@@ -22,6 +22,7 @@ internal static class ResultExtensions
         int statusCode = error.Type switch
         {
             ErrorType.Validation => StatusCodes.Status400BadRequest,
+            ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
             ErrorType.NotFound => StatusCodes.Status404NotFound,
             ErrorType.Conflict => StatusCodes.Status409Conflict,
             ErrorType.Forbidden => StatusCodes.Status403Forbidden,
@@ -43,6 +44,7 @@ internal static class ResultExtensions
     private static string GetTitle(ErrorType errorType) => errorType switch
     {
         ErrorType.Validation => "Error de validación",
+        ErrorType.Unauthorized => "No autenticado",
         ErrorType.NotFound => "Recurso no encontrado",
         ErrorType.Conflict => "Conflicto",
         ErrorType.Forbidden => "Acceso denegado",
