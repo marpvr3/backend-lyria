@@ -4,6 +4,7 @@ using Lyria.Application.Abstractions.Security;
 using Lyria.Application.Features.BranchSpecialSchedules;
 using Lyria.Application.Features.MobileRegistrations;
 using Lyria.Infrastructure;
+using Lyria.Infrastructure.Notifications;
 using Lyria.Infrastructure.Persistence;
 using Lyria.Infrastructure.Security;
 using Microsoft.OpenApi;
@@ -39,6 +40,20 @@ public static class ServiceCollectionExtensions
             .Bind(configuration.GetSection(JwtOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
+
+        // La verificación de correo también se valida al arrancar: sin el secreto los
+        // códigos se hashearían con una clave vacía, lo que equivaldría a almacenarlos
+        // sin protección frente a una filtración de la base de datos.
+        services.AddOptions<EmailVerificationOptions>()
+            .Bind(configuration.GetSection(EmailVerificationOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        // La configuración SMTP no se valida al arrancar: un ambiente que no envía correo
+        // no debe impedir el inicio de la API. Un problema de configuración produce un
+        // error técnico registrado en el momento del envío, sin exponer detalles al cliente.
+        services.AddOptions<EmailOptions>()
+            .Bind(configuration.GetSection(EmailOptions.SectionName));
 
         services.AddLyriaCors(configuration);
         services.AddLyriaAuthentication();

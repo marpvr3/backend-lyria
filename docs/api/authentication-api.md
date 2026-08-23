@@ -11,9 +11,12 @@ Primera versión de la autenticación para usuarios de la aplicación móvil de 
 Incluye inicio de sesión, emisión y renovación de tokens con rotación, cierre de sesión
 y consulta del perfil autenticado.
 
-**No incluye** (requerimientos posteriores): confirmación de correo, recuperación y
-cambio de contraseña, MFA, inicio con proveedores externos, cookies, autorización por
-roles, administración de sesiones ni las restricciones alimenticias dentro del perfil.
+**No incluye** (requerimientos posteriores): recuperación y cambio de contraseña, MFA,
+inicio con proveedores externos, cookies, autorización por roles, administración de
+sesiones ni las restricciones alimenticias dentro del perfil.
+
+La confirmación de correo se documenta aparte:
+[Verificación de correo — API](email-verification-api.md).
 
 ## Endpoints
 
@@ -54,7 +57,7 @@ Respuesta `200 OK`:
     "name": "Andres",
     "lastName": "Perez",
     "email": "andres@email.com",
-    "status": "Unverified"
+    "status": "Active"
   }
 }
 ```
@@ -77,19 +80,25 @@ Pasos que ejecuta el backend:
 
 | Estado | ¿Puede iniciar sesión? |
 |--------|------------------------|
-| `Unverified` | Sí |
+| `Unverified` | No |
 | `Active` | Sí |
 | `Suspended` | No |
 | `Deleted` | No |
 
-`Unverified` se admite de forma **temporal**: es el estado con el que el registro móvil
-crea las cuentas y todavía no existe un flujo de confirmación de correo. El inicio de
-sesión no modifica el estado de la cuenta.
+Solo `Active` puede autenticarse. Desde que existe la
+[verificación de correo](email-verification-api.md), `Unverified` es el estado
+transitorio con el que el registro móvil crea la cuenta hasta que el usuario canjea su
+código; mientras tanto no puede iniciar sesión. El inicio de sesión no modifica el estado
+de la cuenta: la transición `Unverified → Active` solo ocurre al confirmar el correo.
+
+> No existe un mensaje del tipo "debe verificar su correo": revelaría que la cuenta
+> existe. El rechazo de una cuenta sin verificar es indistinguible del de una contraseña
+> incorrecta.
 
 ### Respuesta genérica ante fallo
 
-Correo inexistente, contraseña incorrecta, cuenta suspendida y cuenta eliminada
-producen **exactamente la misma respuesta**:
+Correo inexistente, contraseña incorrecta, cuenta sin verificar, cuenta suspendida y
+cuenta eliminada producen **exactamente la misma respuesta**:
 
 ```
 401 Unauthorized
@@ -126,6 +135,10 @@ la misma transacción**.
 
 **La rotación es obligatoria**: un refresh token solo puede usarse una vez. Reenviar un
 token ya rotado devuelve `401`.
+
+Al exigirse `Active`, una sesión abierta antes de que existiera la verificación de correo
+deja de poder renovarse mientras la cuenta siga sin verificar. Las sesiones **no** se
+eliminan de forma automática: simplemente caducan cuando vence su refresh token.
 
 Token inexistente, vencido, revocado o reutilizado producen la misma respuesta:
 
@@ -179,8 +192,8 @@ Respuesta `200 OK`:
   "phone": "3001234567",
   "birthDate": "1978-12-25",
   "photoUrl": null,
-  "status": "Unverified",
-  "isEmailVerified": false
+  "status": "Active",
+  "isEmailVerified": true
 }
 ```
 

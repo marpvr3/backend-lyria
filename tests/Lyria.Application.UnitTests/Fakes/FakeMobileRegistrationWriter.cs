@@ -1,5 +1,6 @@
 using Lyria.Application.Abstractions.Persistence;
 using Lyria.Domain.Users;
+using Lyria.Domain.Users.EmailVerifications;
 using Lyria.Domain.Users.UserRestrictions;
 using Lyria.Domain.Users.UserRoles;
 
@@ -24,12 +25,15 @@ internal sealed class FakeMobileRegistrationWriter : IMobileRegistrationWriter
 
     public IReadOnlyCollection<UserRestriction> CommittedUserRestrictions { get; private set; } = [];
 
+    public UserEmailVerification? CommittedEmailVerification { get; private set; }
+
     public bool Committed { get; private set; }
 
     public Task RegisterAsync(
         User user,
         UserRole userRole,
         IReadOnlyCollection<UserRestriction> userRestrictions,
+        UserEmailVerification emailVerification,
         CancellationToken cancellationToken)
     {
         RegisterCallCount++;
@@ -43,6 +47,7 @@ internal sealed class FakeMobileRegistrationWriter : IMobileRegistrationWriter
         CommittedUser = user;
         CommittedUserRole = userRole;
         CommittedUserRestrictions = userRestrictions;
+        CommittedEmailVerification = emailVerification;
         Committed = true;
 
         return Task.CompletedTask;

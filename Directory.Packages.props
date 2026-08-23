@@ -48,6 +48,16 @@
     <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
   </ItemGroup>
 
+  <!-- Envío de correo saliente desde Infrastructure. MailKit es la biblioteca SMTP
+       recomendada por Microsoft frente a System.Net.Mail.SmtpClient, que la propia
+       documentación desaconseja para código nuevo por no soportar correctamente los
+       modos de cifrado modernos. Licencia MIT, mantenimiento activo y compatible con
+       .NET 10. Arrastra MimeKit, del mismo autor y licencia, para componer el mensaje.
+       Es el único paquete de correo del proyecto. -->
+  <ItemGroup Label="Email">
+    <PackageVersion Include="MailKit" Version="4.17.0" />
+  </ItemGroup>
+
   <ItemGroup Label="Mediator">
     <PackageVersion Include="Mediator.Abstractions" Version="3.0.2" />
     <PackageVersion Include="Mediator.SourceGenerator" Version="3.0.2" />

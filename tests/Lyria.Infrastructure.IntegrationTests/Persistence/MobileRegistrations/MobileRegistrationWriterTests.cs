@@ -1,6 +1,7 @@
 using Lyria.Domain.Restrictions;
 using Lyria.Domain.Roles;
 using Lyria.Domain.Users;
+using Lyria.Domain.Users.EmailVerifications;
 using Lyria.Domain.Users.UserRestrictions;
 using Lyria.Domain.Users.UserRoles;
 using Lyria.Infrastructure.Persistence.Repositories;
@@ -59,6 +60,18 @@ public sealed class MobileRegistrationWriterTests : IDisposable
         UserId userId, RestrictionId restrictionId, string level) =>
         UserRestriction.Create(userId, restrictionId, level, UtcNow);
 
+    /// <summary>
+    /// Verificación de correo inicial. Solo lleva el hash del código: los seis dígitos
+    /// nunca llegan a la base de datos.
+    /// </summary>
+    private static UserEmailVerification NewEmailVerification(UserId userId) =>
+        UserEmailVerification.Create(
+            UserEmailVerificationId.New(),
+            userId,
+            new string('a', UserEmailVerification.CodeHashLength),
+            UtcNow,
+            UtcNow.AddMinutes(15));
+
     // --- Confirmación conjunta ---
 
     [Fact]
@@ -80,6 +93,7 @@ public sealed class MobileRegistrationWriterTests : IDisposable
                     NewUserRestriction(userId, first, UserRestrictionImportanceLevels.High),
                     NewUserRestriction(userId, second, UserRestrictionImportanceLevels.High)
                 ],
+                NewEmailVerification(userId),
                 CancellationToken.None);
         }
 
@@ -106,7 +120,11 @@ public sealed class MobileRegistrationWriterTests : IDisposable
             var writer = new MobileRegistrationWriter(context);
 
             await writer.RegisterAsync(
-                NewUser(userId), NewUserRole(userId, roleId), [], CancellationToken.None);
+                NewUser(userId),
+                NewUserRole(userId, roleId),
+                [],
+                NewEmailVerification(userId),
+                CancellationToken.None);
         }
 
         await using var verification = _fixture.CreateContext();
@@ -119,7 +137,88 @@ public sealed class MobileRegistrationWriterTests : IDisposable
             .Where(ur => ur.UserId == userId).ToListAsync(CancellationToken.None));
     }
 
+    /// <summary>
+    /// La verificación de correo inicial se confirma en la misma transacción que el
+    /// usuario, su rol y sus restricciones.
+    /// </summary>
+    [Fact]
+    public async Task RegisterAsync_PersistsTheInitialEmailVerification_WithTheUser()
+    {
+        RoleId roleId = SeedRole();
+        var userId = UserId.New();
+        UserEmailVerification verification = NewEmailVerification(userId);
+
+        await using (var context = _fixture.CreateContext())
+        {
+            var writer = new MobileRegistrationWriter(context);
+
+            await writer.RegisterAsync(
+                NewUser(userId),
+                NewUserRole(userId, roleId),
+                [],
+                verification,
+                CancellationToken.None);
+        }
+
+        await using var confirmation = _fixture.CreateContext();
+
+        UserEmailVerification persisted = await confirmation.Set<UserEmailVerification>()
+            .SingleAsync(v => v.UserId == userId, CancellationToken.None);
+
+        Assert.Equal(verification.CodeHash, persisted.CodeHash);
+        Assert.Equal(UtcNow, persisted.CreatedAtUtc);
+        Assert.False(persisted.IsUsed);
+        Assert.False(persisted.IsRevoked);
+        Assert.Equal(0, persisted.FailedAttempts);
+
+        // El usuario queda pendiente de verificar.
+        User user = await confirmation.Set<User>()
+            .SingleAsync(u => u.Id == userId, CancellationToken.None);
+
+        Assert.Equal(UserStatus.Unverified, user.Status);
+        Assert.False(user.IsEmailVerified);
+    }
+
     // --- Rollback ---
+
+    /// <summary>
+    /// Si la verificación no puede crearse, no queda un usuario incompleto.
+    /// </summary>
+    [Fact]
+    public async Task RegisterAsync_WhenTheEmailVerificationFails_RollsBackEverything()
+    {
+        RoleId roleId = SeedRole();
+        RestrictionId restrictionId = SeedRestriction();
+        var userId = UserId.New();
+
+        // La FK de la verificación apunta a un usuario que no es el que se está creando.
+        UserEmailVerification orphan = NewEmailVerification(UserId.New());
+
+        await using (var context = _fixture.CreateContext())
+        {
+            var writer = new MobileRegistrationWriter(context);
+
+            await Assert.ThrowsAnyAsync<DbUpdateException>(() =>
+                writer.RegisterAsync(
+                    NewUser(userId),
+                    NewUserRole(userId, roleId),
+                    [NewUserRestriction(
+                        userId, restrictionId, UserRestrictionImportanceLevels.High)],
+                    orphan,
+                    CancellationToken.None));
+        }
+
+        await using var verification = _fixture.CreateContext();
+
+        Assert.Null(await verification.Set<User>()
+            .FirstOrDefaultAsync(u => u.Id == userId, CancellationToken.None));
+        Assert.Empty(await verification.Set<UserRole>()
+            .Where(ur => ur.UserId == userId).ToListAsync(CancellationToken.None));
+        Assert.Empty(await verification.Set<UserRestriction>()
+            .Where(ur => ur.UserId == userId).ToListAsync(CancellationToken.None));
+        Assert.Empty(await verification.Set<UserEmailVerification>()
+            .Where(v => v.UserId == userId).ToListAsync(CancellationToken.None));
+    }
 
     [Fact]
     public async Task RegisterAsync_WhenUserRoleFails_RollsBackUser()
@@ -137,6 +236,7 @@ public sealed class MobileRegistrationWriterTests : IDisposable
                     NewUser(userId),
                     NewUserRole(userId, missingRoleId),
                     [],
+                    NewEmailVerification(userId),
                     CancellationToken.None));
         }
 
@@ -169,6 +269,7 @@ public sealed class MobileRegistrationWriterTests : IDisposable
                         NewUserRestriction(
                             userId, missingRestrictionId, UserRestrictionImportanceLevels.High)
                     ],
+                    NewEmailVerification(userId),
                     CancellationToken.None));
         }
 
@@ -204,6 +305,7 @@ public sealed class MobileRegistrationWriterTests : IDisposable
                         NewUserRestriction(
                             userId, restrictionId, UserRestrictionImportanceLevels.Low)
                     ],
+                    NewEmailVerification(userId),
                     CancellationToken.None));
         }
 
@@ -238,7 +340,11 @@ public sealed class MobileRegistrationWriterTests : IDisposable
 
             await Assert.ThrowsAnyAsync<DbUpdateException>(() =>
                 writer.RegisterAsync(
-                    duplicate, NewUserRole(userId, roleId), [], CancellationToken.None));
+                    duplicate,
+                    NewUserRole(userId, roleId),
+                    [],
+                    NewEmailVerification(userId),
+                    CancellationToken.None));
         }
 
         await using var verification = _fixture.CreateContext();
@@ -265,7 +371,11 @@ public sealed class MobileRegistrationWriterTests : IDisposable
 
             await Assert.ThrowsAnyAsync<DbUpdateException>(() =>
                 writer.RegisterAsync(
-                    user, NewUserRole(userId, missingRoleId), [], CancellationToken.None));
+                    user,
+                    NewUserRole(userId, missingRoleId),
+                    [],
+                    NewEmailVerification(userId),
+                    CancellationToken.None));
         }
 
         await using var verification = _fixture.CreateContext();
@@ -286,7 +396,11 @@ public sealed class MobileRegistrationWriterTests : IDisposable
         {
             var writer = new MobileRegistrationWriter(context);
             await writer.RegisterAsync(
-                NewUser(userId), NewUserRole(userId, roleId), [], CancellationToken.None);
+                NewUser(userId),
+                NewUserRole(userId, roleId),
+                [],
+                NewEmailVerification(userId),
+                CancellationToken.None);
         }
 
         await using var verification = _fixture.CreateContext();
@@ -318,6 +432,7 @@ public sealed class MobileRegistrationWriterTests : IDisposable
                 NewUserRole(userId, roleId),
                 [NewUserRestriction(
                     userId, restrictionId, UserRestrictionImportanceLevels.High)],
+                NewEmailVerification(userId),
                 CancellationToken.None);
         }
 
@@ -340,7 +455,11 @@ public sealed class MobileRegistrationWriterTests : IDisposable
         {
             var writer = new MobileRegistrationWriter(context);
             await writer.RegisterAsync(
-                NewUser(userId), NewUserRole(userId, roleId), [], CancellationToken.None);
+                NewUser(userId),
+                NewUserRole(userId, roleId),
+                [],
+                NewEmailVerification(userId),
+                CancellationToken.None);
         }
 
         await using var verification = _fixture.CreateContext();

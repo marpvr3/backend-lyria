@@ -8,8 +8,12 @@ Endpoint dedicado al registro de usuarios desde la aplicación móvil de Lyria.
 POST /api/v1/mobile/registrations
 ```
 
-No requiere autenticación. No emite tokens ni sesiones: el inicio de sesión, la
-verificación de correo y la recuperación de contraseña quedan fuera de este alcance.
+No requiere autenticación. No emite tokens ni sesiones: el inicio de sesión y la
+recuperación de contraseña quedan fuera de este alcance.
+
+El registro **sí** genera y envía el código de verificación de correo con el que la
+cuenta pasa después a `Active`. Ver
+[Verificación de correo — API](email-verification-api.md).
 
 ## Request
 
@@ -81,8 +85,9 @@ seleccionadas. El backend determina, sin intervención del cliente:
 
 | Valor | Decisión del backend |
 |---|---|
-| Estado inicial | `Unverified`. |
+| Estado inicial | `Unverified`. La cuenta **no puede iniciar sesión** hasta confirmar el correo. |
 | `isEmailVerified` | `false`. |
+| Código de verificación | 6 dígitos generados con `RandomNumberGenerator`; solo se persiste su HMAC-SHA256. |
 | `lastLoginAtUtc` | `null`. |
 | Hash de contraseña | ASP.NET Core Identity (`PasswordHasher<T>`, PBKDF2-HMAC-SHA512). |
 | Rol asignado | El configurado en `MobileRegistration:DefaultRoleId`. |
@@ -150,19 +155,32 @@ No son permisos, bloqueos de seguridad ni restricciones administrativas.
 
 ## Atomicidad
 
-El usuario, su asignación de rol y sus restricciones alimenticias se persisten en una
-**única transacción**:
+El usuario, su asignación de rol, sus restricciones alimenticias y su verificación de
+correo inicial se persisten en una **única transacción**:
 
 ```
 BEGIN TRANSACTION
   INSERT Usuarios
   INSERT UsuarioRoles
   INSERT UsuarioRestricciones...
+  INSERT UsuarioVerificacionesCorreo
 COMMIT
 ```
 
 Ante cualquier fallo se ejecuta `ROLLBACK` y no queda ningún registro parcial:
-ni usuario sin rol, ni usuario con restricciones incompletas, ni asociaciones huérfanas.
+ni usuario sin rol, ni usuario con restricciones incompletas, ni asociaciones huérfanas,
+ni usuario sin código de verificación.
+
+### Envío del correo
+
+El correo con el código se envía **después** del `COMMIT`: la conexión con el proveedor
+SMTP nunca se establece con una transacción SQL abierta.
+
+Si el envío falla, el usuario permanece creado como `Unverified`, se registra un error
+técnico sin datos sensibles y **la respuesta del registro no cambia**: sigue devolviendo
+`201 Created`. El usuario puede pedir un código nuevo en
+`POST /api/v1/auth/email-verification/resend`. Un fallo de envío nunca revierte datos ya
+confirmados.
 
 La transacción vive en `MobileRegistrationWriter` (Infrastructure), se abarca el caso de
 uso completo y se envuelve en la *execution strategy* del proveedor, de modo que

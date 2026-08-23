@@ -26,7 +26,12 @@ public sealed class RefreshAuthenticationTests
         new(_sessions, _users, _accessTokens, _refreshTokens, _writer,
             _timeProvider, NullLogger<RefreshAuthenticationCommandHandler>.Instance);
 
-    private User SeedUser(UserStatus status = UserStatus.Unverified)
+    /// <summary>
+    /// Siembra un usuario en el estado indicado. El estado predeterminado es
+    /// <see cref="UserStatus.Active"/>: desde que existe la verificación de correo, es el
+    /// único con el que se puede renovar una sesión.
+    /// </summary>
+    private User SeedUser(UserStatus status = UserStatus.Active)
     {
         var user = User.Create(
             UserId.New(), "Andres", "Perez", $"{Guid.NewGuid():N}@email.com",
@@ -203,6 +208,7 @@ public sealed class RefreshAuthenticationTests
     }
 
     [Theory]
+    [InlineData(UserStatus.Unverified)]
     [InlineData(UserStatus.Suspended)]
     [InlineData(UserStatus.Deleted)]
     public async Task Refresh_WhenTheUserIsNoLongerAuthenticable_Fails(UserStatus status)
