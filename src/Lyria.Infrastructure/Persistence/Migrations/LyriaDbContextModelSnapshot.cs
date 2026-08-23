@@ -709,6 +709,53 @@ namespace Lyria.Infrastructure.Persistence.Migrations
                     b.ToTable("Servicios", (string)null);
                 });
 
+            modelBuilder.Entity("Lyria.Domain.Users.EmailVerifications.UserEmailVerification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("VerificacionCorreoId");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("CodigoHash");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("FechaCreacion");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("FechaExpiracion");
+
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("int")
+                        .HasColumnName("IntentosFallidos");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("FechaRevocacion");
+
+                    b.Property<DateTime?>("UsedAtUtc")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("FechaUso");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("UsuarioId");
+
+                    b.HasKey("Id")
+                        .HasName("PK_UsuarioVerificacionesCorreo");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_UsuarioVerificacionesCorreo_UsuarioId");
+
+                    b.ToTable("UsuarioVerificacionesCorreo", (string)null);
+                });
+
             modelBuilder.Entity("Lyria.Domain.Users.RefreshTokens.UserRefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1003,6 +1050,16 @@ namespace Lyria.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("FK_Establecimientos_CategoriasEstablecimiento_CategoriaId");
+                });
+
+            modelBuilder.Entity("Lyria.Domain.Users.EmailVerifications.UserEmailVerification", b =>
+                {
+                    b.HasOne("Lyria.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_UsuarioVerificacionesCorreo_Usuarios_UsuarioId");
                 });
 
             modelBuilder.Entity("Lyria.Domain.Users.RefreshTokens.UserRefreshToken", b =>

@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Lyria.ArchitectureTests;
@@ -8,7 +9,7 @@ namespace Lyria.ArchitectureTests;
 /// Application no depende de JWT, la API no emite tokens, los secretos no están
 /// incrustados en el código y no se registran credenciales ni tokens.
 /// </summary>
-public class AuthenticationArchitectureTests
+public partial class AuthenticationArchitectureTests
 {
     private static readonly Assembly DomainAssembly =
         typeof(Domain.Users.User).Assembly;
@@ -251,27 +252,70 @@ public class AuthenticationArchitectureTests
     }
 
     /// <summary>
-    /// SHA-256 solo puede invocarse donde se hashea el refresh token, nunca como
-    /// sustituto del password hasher.
+    /// SHA-256 sin clave solo puede invocarse donde se hashea el refresh token, nunca
+    /// como sustituto del password hasher ni para proteger valores de bajo espacio de
+    /// búsqueda, como los códigos de verificación.
     /// </summary>
+    /// <remarks>
+    /// La comprobación excluye deliberadamente <c>HMACSHA256</c>, que es un algoritmo
+    /// distinto: incorpora un secreto y sí es apropiado para hashear un código de seis
+    /// dígitos.
+    /// </remarks>
     [Fact]
-    public void Sha256_IsOnlyInvokedByTheRefreshTokenGenerator()
+    public void UnkeyedSha256_IsOnlyInvokedByTheRefreshTokenGenerator()
     {
         string[] callers = [.. ProductionSourceFiles()
-            .Where(file =>
-            {
-                string source = File.ReadAllText(file);
-
-                // Invocaciones reales del algoritmo, no menciones en comentarios.
-                return source.Contains("SHA256.HashData", StringComparison.Ordinal) ||
-                       source.Contains("SHA256.Create", StringComparison.Ordinal) ||
-                       source.Contains("new SHA256", StringComparison.Ordinal);
-            })
+            .Where(file => UnkeyedSha256Regex().IsMatch(File.ReadAllText(file)))
             .Select(file => Path.GetFileName(file)!)
             .Order(StringComparer.Ordinal)];
 
         Assert.Equal(["RefreshTokenGenerator.cs"], callers);
     }
+
+    /// <summary>
+    /// Los códigos de verificación se hashean con HMAC-SHA256, nunca con un digest sin
+    /// clave: el espacio de seis dígitos puede recorrerse por completo si la base de
+    /// datos se filtra.
+    /// </summary>
+    [Fact]
+    public void EmailVerificationCodes_AreHashedWithAKeyedMac()
+    {
+        string source = ReadSourceFile(
+            "src", "Lyria.Infrastructure", "Security", "EmailVerificationCodeHasher.cs");
+
+        Assert.Contains("HMACSHA256.HashData", source, StringComparison.Ordinal);
+        Assert.Contains("CodeSecret", source, StringComparison.Ordinal);
+
+        // La comparación no puede filtrar información por tiempo.
+        Assert.Contains(
+            "CryptographicOperations.FixedTimeEquals", source, StringComparison.Ordinal);
+
+        // El secreto de los códigos jamás es la clave de firma de los JWT.
+        Assert.DoesNotContain("SigningKey", source, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// El generador de códigos usa una fuente criptográfica, nunca una predecible.
+    /// </summary>
+    [Fact]
+    public void EmailVerificationCodeGenerator_UsesACryptographicRandomSource()
+    {
+        string source = ReadSourceFile(
+            "src", "Lyria.Infrastructure", "Security", "EmailVerificationCodeGenerator.cs");
+
+        Assert.Contains("RandomNumberGenerator.GetInt32", source, StringComparison.Ordinal);
+
+        foreach (string forbidden in new[]
+        {
+            "new Random", "Random.Shared", "Guid.NewGuid", "DateTime.Now", "Ticks"
+        })
+        {
+            Assert.DoesNotContain(forbidden, source, StringComparison.Ordinal);
+        }
+    }
+
+    [GeneratedRegex(@"(?<!HMAC)SHA256\.(HashData|Create)|new SHA256")]
+    private static partial Regex UnkeyedSha256Regex();
 
     [Fact]
     public void PasswordVerification_DoesNotCompareHashesAsStrings()

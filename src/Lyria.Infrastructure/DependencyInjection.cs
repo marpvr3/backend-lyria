@@ -1,6 +1,8 @@
+using Lyria.Application.Abstractions.Notifications;
 using Lyria.Application.Abstractions.Persistence;
 using Lyria.Application.Abstractions.Security;
 using Lyria.Application.Abstractions.Services;
+using Lyria.Infrastructure.Notifications;
 using Lyria.Infrastructure.Persistence;
 using Lyria.Infrastructure.Persistence.ReadServices;
 using Lyria.Infrastructure.Persistence.Repositories;
@@ -82,16 +84,27 @@ public static class DependencyInjection
         services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
         services.AddScoped<IAuthenticationSessionWriter, AuthenticationSessionWriter>();
 
+        services.AddScoped<IUserEmailVerificationRepository, UserEmailVerificationRepository>();
+        services.AddScoped<IEmailVerificationWriter, EmailVerificationWriter>();
+
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
 
-        // JwtOptions se enlaza y valida en el composition root de Api, junto al resto
-        // de las opciones de la aplicación.
+        // JwtOptions y EmailVerificationOptions se enlazan y validan en el composition
+        // root de Api, junto al resto de las opciones de la aplicación.
         services.AddSingleton<IAccessTokenService, JwtAccessTokenService>();
         services.AddSingleton<IRefreshTokenGenerator, RefreshTokenGenerator>();
+
+        services.AddSingleton<IEmailVerificationCodeGenerator, EmailVerificationCodeGenerator>();
+        services.AddSingleton<IEmailVerificationCodeHasher, EmailVerificationCodeHasher>();
+
+        // El proveedor de correo es el único componente que conoce SMTP. Se registra como
+        // Scoped para que un ambiente de pruebas pueda sustituirlo sin afectar al resto.
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
 
         services.AddSingleton<ITimeZoneService, TimeZoneService>();
         services.AddSingleton<IBranchTimeZoneDefaults, BranchTimeZoneDefaults>();
         services.AddSingleton<IMobileRegistrationDefaults, MobileRegistrationDefaults>();
+        services.AddSingleton<IEmailVerificationDefaults, EmailVerificationDefaults>();
 
         return services;
     }

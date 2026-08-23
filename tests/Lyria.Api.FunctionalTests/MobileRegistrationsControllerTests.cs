@@ -1,11 +1,13 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Lyria.Application.Abstractions.Notifications;
 using Lyria.Application.Abstractions.Persistence;
 using Lyria.Application.Abstractions.Security;
 using Lyria.Domain.Restrictions;
 using Lyria.Domain.Roles;
 using Lyria.Domain.Users;
+using Lyria.Domain.Users.EmailVerifications;
 using Lyria.Domain.Users.UserRestrictions;
 using Lyria.Domain.Users.UserRoles;
 using Microsoft.AspNetCore.Mvc;
@@ -104,6 +106,7 @@ public class MobileRegistrationsControllerTests
                 services.AddSingleton<IRestrictionRepository>(harness.Restrictions);
                 services.AddSingleton<IMobileRegistrationWriter>(harness.Writer);
                 services.AddSingleton<IPasswordHasher>(harness.PasswordHasher);
+                services.AddSingleton<IEmailSender>(harness.EmailSender);
             });
         });
 
@@ -655,6 +658,7 @@ public class MobileRegistrationsControllerTests
         public FakeRestrictionRepository Restrictions { get; } = new();
         public FakeMobileRegistrationWriter Writer { get; } = new();
         public FakePasswordHasher PasswordHasher { get; } = new();
+        public FakeEmailSender EmailSender { get; } = new();
         public HttpClient Client { get; set; } = null!;
     }
 
@@ -758,10 +762,13 @@ public class MobileRegistrationsControllerTests
 
         public IReadOnlyCollection<UserRestriction> CommittedRestrictions { get; private set; } = [];
 
+        public UserEmailVerification? CommittedEmailVerification { get; private set; }
+
         public Task RegisterAsync(
             User user,
             UserRole userRole,
             IReadOnlyCollection<UserRestriction> userRestrictions,
+            UserEmailVerification emailVerification,
             CancellationToken cancellationToken)
         {
             RegisterCallCount++;
@@ -774,6 +781,7 @@ public class MobileRegistrationsControllerTests
             CommittedUser = user;
             CommittedUserRole = userRole;
             CommittedRestrictions = userRestrictions;
+            CommittedEmailVerification = emailVerification;
             Committed = true;
 
             return Task.CompletedTask;

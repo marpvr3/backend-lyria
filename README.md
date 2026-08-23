@@ -103,6 +103,7 @@ docs/
 - [EstablishmentCategories — API](docs/api/establishment-categories-api.md)
 - [Registro Móvil — API](docs/api/mobile-registrations-api.md)
 - [Autenticación Móvil — API](docs/api/authentication-api.md)
+- [Verificación de Correo — API](docs/api/email-verification-api.md)
 
 ### Decisiones arquitectónicas
 
@@ -159,7 +160,50 @@ La API valida access tokens JWT en los endpoints protegidos. La configuración s
 
 La clave de firma se suministra **únicamente** por variable de entorno y nunca se versiona. Generarla con `openssl rand -base64 64`.
 
-> ⚠️ **HTTPS obligatorio.** Contraseñas y tokens no deben viajar por HTTP plano. El repositorio no incluye hoy configuración TLS (ni `UseHttpsRedirection`, ni `ForwardedHeaders`, ni certificados), y la API pública está expuesta solo sobre HTTP. **El despliegue de la autenticación queda bloqueado hasta configurar HTTPS.** Detalles: [Autenticación Móvil — API](docs/api/authentication-api.md).
+**Solo las cuentas `Active` pueden iniciar sesión.** Una cuenta recién registrada queda en `Unverified` hasta que confirma su correo.
+
+### Verificación de correo
+
+Todo usuario registrado desde la aplicación móvil recibe por correo un código numérico de **seis dígitos** con el que confirma su dirección. Al confirmarlo, `IsEmailVerified` pasa a `true` y el estado cambia de `Unverified` a `Active`, que es cuando la cuenta puede iniciar sesión.
+
+| Regla | Valor |
+|-------|-------|
+| Longitud del código | 6 dígitos, puede empezar por cero |
+| Vigencia | 15 minutos |
+| Usos | Uno solo |
+| Intentos fallidos | Máximo 5; al agotarlos hay que pedir uno nuevo |
+| Reenvío | `POST /api/v1/auth/email-verification/resend`, con 60 s de intervalo mínimo |
+| Confirmación | `POST /api/v1/auth/email-verification/confirm` |
+| Almacenamiento | Solo el HMAC-SHA256 del código; nunca se guarda ni se registra en claro |
+
+El envío inicial forma parte del registro móvil y no tiene endpoint propio. Las respuestas son **genéricas**: ni el reenvío ni la confirmación revelan si un correo está registrado o en qué estado se encuentra la cuenta. Un fallo del proveedor de correo no revierte el registro; el usuario queda creado como `Unverified` y puede solicitar un reenvío.
+
+La configuración se valida al arrancar: **sin `EmailVerification__CodeSecret` la API no inicia**.
+
+| Variable de entorno | Valor | Efecto |
+|---------------------|-------|--------|
+| `EmailVerification__CodeSecret` | *(secreto)* | Clave HMAC de los códigos. Mínimo 32 caracteres, **distinta** de `Jwt__SigningKey` |
+| `EmailVerification__ExpirationMinutes` | `15` | Vigencia del código |
+| `EmailVerification__MaximumFailedAttempts` | `5` | Intentos que invalidan un código |
+| `EmailVerification__ResendCooldownSeconds` | `60` | Intervalo mínimo entre envíos |
+
+### Correo saliente
+
+El envío usa SMTP a través de MailKit. La configuración SMTP **no** se valida al arrancar: un ambiente que no envía correo no debe impedir el inicio de la API.
+
+| Variable de entorno | Valor |
+|---------------------|-------|
+| `Email__SmtpHost` | Servidor SMTP |
+| `Email__SmtpPort` | `587` |
+| `Email__UseTls` | `true` |
+| `Email__Username` | *(secreto)* |
+| `Email__Password` | *(secreto)* |
+| `Email__FromAddress` | `no-reply@dominio.com` |
+| `Email__FromName` | `Lyria` |
+
+Ningún secreto se versiona: `appsettings.json` solo contiene cadenas vacías. La estructura de la tabla `dbo.UsuarioVerificacionesCorreo` se aplica con la migración `AddUserEmailVerifications`.
+
+> ⚠️ **HTTPS obligatorio.** Contraseñas, tokens y códigos de verificación no deben viajar por HTTP plano. El repositorio no incluye hoy configuración TLS (ni `UseHttpsRedirection`, ni `ForwardedHeaders`, ni certificados), y la API pública está expuesta solo sobre HTTP. **El despliegue de la autenticación y de la verificación de correo queda bloqueado hasta configurar HTTPS.** Detalles: [Autenticación Móvil — API](docs/api/authentication-api.md) y [Verificación de Correo — API](docs/api/email-verification-api.md).
 
 ## Convenciones
 

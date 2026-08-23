@@ -37,8 +37,12 @@ public class AuthenticationControllerTests
 
     // --- Escenario ---
 
+    /// <summary>
+    /// Prepara el escenario. El estado predeterminado es <see cref="UserStatus.Active"/>:
+    /// desde que existe la verificación de correo, es el único que permite autenticarse.
+    /// </summary>
     private Harness CreateHarness(
-        UserStatus status = UserStatus.Unverified,
+        UserStatus status = UserStatus.Active,
         bool seedUser = true,
         int permitLimit = 1000)
     {
@@ -97,6 +101,9 @@ public class AuthenticationControllerTests
             return;
         }
 
+        // Activar una cuenta solo es posible confirmando el correo, de modo que el
+        // escenario reproduce ambos efectos juntos.
+        user.MarkEmailAsVerified();
         user.ChangeStatus(UserStatus.Active);
 
         if (status == UserStatus.Active)
@@ -161,7 +168,7 @@ public class AuthenticationControllerTests
         Assert.Equal("Andres", user.GetProperty("name").GetString());
         Assert.Equal("Perez", user.GetProperty("lastName").GetString());
         Assert.Equal(Email, user.GetProperty("email").GetString());
-        Assert.Equal("Unverified", user.GetProperty("status").GetString());
+        Assert.Equal("Active", user.GetProperty("status").GetString());
     }
 
     [Fact]
@@ -220,6 +227,7 @@ public class AuthenticationControllerTests
     }
 
     [Theory]
+    [InlineData(UserStatus.Unverified)]
     [InlineData(UserStatus.Suspended)]
     [InlineData(UserStatus.Deleted)]
     public async Task Login_WithNonAuthenticableStatus_ReturnsUnauthorized(UserStatus status)
@@ -232,11 +240,19 @@ public class AuthenticationControllerTests
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    /// <summary>
+    /// Cuenta sin verificar, suspendida y eliminada deben producir respuestas
+    /// indistinguibles byte a byte: ninguna revela por qué se rechazó el acceso.
+    /// </summary>
     [Fact]
-    public async Task Login_SuspendedAndDeleted_ProduceIdenticalResponses()
+    public async Task Login_UnverifiedSuspendedAndDeleted_ProduceIdenticalResponses()
     {
+        Harness unverified = CreateHarness(UserStatus.Unverified);
         Harness suspended = CreateHarness(UserStatus.Suspended);
         Harness deleted = CreateHarness(UserStatus.Deleted);
+
+        HttpResponseMessage unverifiedResponse = await unverified.Client.PostAsJsonAsync(
+            LoginPath, Credentials(), TestContext.Current.CancellationToken);
 
         HttpResponseMessage suspendedResponse = await suspended.Client.PostAsJsonAsync(
             LoginPath, Credentials(), TestContext.Current.CancellationToken);
@@ -244,12 +260,56 @@ public class AuthenticationControllerTests
         HttpResponseMessage deletedResponse = await deleted.Client.PostAsJsonAsync(
             LoginPath, Credentials(), TestContext.Current.CancellationToken);
 
-        Assert.Equal(suspendedResponse.StatusCode, deletedResponse.StatusCode);
+        string unverifiedBody = await unverifiedResponse.Content.ReadAsStringAsync(
+            TestContext.Current.CancellationToken);
+        string suspendedBody = await suspendedResponse.Content.ReadAsStringAsync(
+            TestContext.Current.CancellationToken);
+        string deletedBody = await deletedResponse.Content.ReadAsStringAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(unverifiedResponse.StatusCode, suspendedResponse.StatusCode);
+        Assert.Equal(unverifiedResponse.StatusCode, deletedResponse.StatusCode);
+        Assert.Equal(unverifiedBody, suspendedBody);
+        Assert.Equal(unverifiedBody, deletedBody);
+    }
+
+    /// <summary>
+    /// El rechazo de una cuenta sin verificar tampoco puede distinguirse del de una
+    /// contraseña incorrecta.
+    /// </summary>
+    [Fact]
+    public async Task Login_UnverifiedAndWrongPassword_ProduceIdenticalResponses()
+    {
+        Harness unverified = CreateHarness(UserStatus.Unverified);
+        Harness active = CreateHarness();
+
+        HttpResponseMessage unverifiedResponse = await unverified.Client.PostAsJsonAsync(
+            LoginPath, Credentials(), TestContext.Current.CancellationToken);
+
+        HttpResponseMessage wrongPassword = await active.Client.PostAsJsonAsync(
+            LoginPath, Credentials(password: "Incorrecta999"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(unverifiedResponse.StatusCode, wrongPassword.StatusCode);
         Assert.Equal(
-            await suspendedResponse.Content.ReadAsStringAsync(
+            await unverifiedResponse.Content.ReadAsStringAsync(
                 TestContext.Current.CancellationToken),
-            await deletedResponse.Content.ReadAsStringAsync(
+            await wrongPassword.Content.ReadAsStringAsync(
                 TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
+    /// Un rechazo por cuenta sin verificar no abre sesión de ninguna clase.
+    /// </summary>
+    [Fact]
+    public async Task Login_WithUnverifiedStatus_DoesNotCreateAnySession()
+    {
+        Harness harness = CreateHarness(UserStatus.Unverified);
+
+        await harness.Client.PostAsJsonAsync(
+            LoginPath, Credentials(), TestContext.Current.CancellationToken);
+
+        Assert.Empty(harness.Sessions.Sessions);
     }
 
     [Theory]
@@ -399,8 +459,8 @@ public class AuthenticationControllerTests
         Assert.Equal("3001234567", body.GetProperty("phone").GetString());
         Assert.Equal("1978-12-25", body.GetProperty("birthDate").GetString());
         Assert.Equal(JsonValueKind.Null, body.GetProperty("photoUrl").ValueKind);
-        Assert.Equal("Unverified", body.GetProperty("status").GetString());
-        Assert.False(body.GetProperty("isEmailVerified").GetBoolean());
+        Assert.Equal("Active", body.GetProperty("status").GetString());
+        Assert.True(body.GetProperty("isEmailVerified").GetBoolean());
     }
 
     [Fact]
@@ -789,6 +849,8 @@ public class AuthenticationControllerTests
     private sealed class FakeUserRefreshTokenRepository : IUserRefreshTokenRepository
     {
         private readonly List<UserRefreshToken> _sessions = [];
+
+        public IReadOnlyList<UserRefreshToken> Sessions => _sessions;
 
         public void Add(UserRefreshToken session) => _sessions.Add(session);
 

@@ -1,13 +1,17 @@
 using Lyria.Application.Abstractions.Messaging;
+using Lyria.Application.Abstractions.Notifications;
 using Lyria.Application.Abstractions.Persistence;
 using Lyria.Application.Abstractions.Security;
 using Lyria.Application.Abstractions.Services;
 using Lyria.Application.Common.Results;
+using Lyria.Application.Features.EmailVerifications;
 using Lyria.Domain.Restrictions;
 using Lyria.Domain.Roles;
 using Lyria.Domain.Users;
+using Lyria.Domain.Users.EmailVerifications;
 using Lyria.Domain.Users.UserRestrictions;
 using Lyria.Domain.Users.UserRoles;
+using Microsoft.Extensions.Logging;
 
 namespace Lyria.Application.Features.MobileRegistrations.Register;
 
@@ -18,6 +22,11 @@ namespace Lyria.Application.Features.MobileRegistrations.Register;
 /// <remarks>
 /// El rol base se localiza exclusivamente por su identificador configurado.
 /// Nunca se busca por Name, Description ni por primera coincidencia.
+///
+/// La verificación de correo inicial forma parte de la misma escritura atómica que el
+/// usuario, su rol y sus restricciones: si no puede crearse, no queda un usuario
+/// incompleto. El correo con el código se envía después, ya fuera de la transacción, y
+/// un fallo del proveedor no revierte el registro.
 /// </remarks>
 public sealed class RegisterMobileUserCommandHandler(
     IUserRepository userRepository,
@@ -25,8 +34,13 @@ public sealed class RegisterMobileUserCommandHandler(
     IRestrictionRepository restrictionRepository,
     IMobileRegistrationWriter registrationWriter,
     IMobileRegistrationDefaults defaults,
+    IEmailVerificationDefaults verificationDefaults,
     IPasswordHasher passwordHasher,
-    TimeProvider timeProvider)
+    IEmailVerificationCodeGenerator codeGenerator,
+    IEmailVerificationCodeHasher codeHasher,
+    IEmailSender emailSender,
+    TimeProvider timeProvider,
+    ILogger<RegisterMobileUserCommandHandler> logger)
     : ICommandHandler<RegisterMobileUserCommand, MobileRegistrationResponse>
 {
     public async ValueTask<Result<MobileRegistrationResponse>> Handle(
@@ -130,9 +144,31 @@ public sealed class RegisterMobileUserCommandHandler(
                 importanceLevel,
                 utcNow))];
 
-        // 8. Persistencia atómica de las tres escrituras.
+        // 8. Verificación de correo inicial. Solo su hash llega a la base de datos:
+        //    el código de seis dígitos únicamente viaja al correo del usuario.
+        string verificationCode = codeGenerator.Generate();
+
+        var emailVerification = UserEmailVerification.Create(
+            UserEmailVerificationId.New(),
+            userId,
+            codeHasher.ComputeHash(verificationCode),
+            utcNow,
+            utcNow.AddMinutes(verificationDefaults.ExpirationMinutes));
+
+        // 9. Persistencia atómica de las cuatro escrituras.
         await registrationWriter.RegisterAsync(
-            user, userRole, userRestrictions, cancellationToken);
+            user, userRole, userRestrictions, emailVerification, cancellationToken);
+
+        // 10. Envío posterior a la confirmación de la transacción: la conexión con el
+        //     proveedor de correo nunca se hace con una transacción SQL abierta. Un fallo
+        //     de envío deja el usuario creado como Unverified y no altera esta respuesta.
+        await EmailVerificationDelivery.SendSafelyAsync(
+            emailSender,
+            logger,
+            user,
+            verificationCode,
+            emailVerification.ExpiresAtUtc,
+            cancellationToken);
 
         return Result.Success(new MobileRegistrationResponse(
             userId.Value,

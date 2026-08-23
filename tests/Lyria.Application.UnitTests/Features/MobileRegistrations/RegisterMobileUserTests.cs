@@ -8,8 +8,10 @@ using Lyria.Application.UnitTests.Fakes;
 using Lyria.Domain.Restrictions;
 using Lyria.Domain.Roles;
 using Lyria.Domain.Users;
+using Lyria.Domain.Users.EmailVerifications;
 using Lyria.Domain.Users.UserRestrictions;
 using Lyria.Domain.Users.UserRoles;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Lyria.Application.UnitTests.Features.MobileRegistrations;
@@ -26,7 +28,11 @@ public sealed class RegisterMobileUserTests
     private readonly FakeRestrictionRepository _restrictionRepository = new();
     private readonly FakeMobileRegistrationWriter _writer = new();
     private readonly FakeMobileRegistrationDefaults _defaults = new();
+    private readonly FakeEmailVerificationDefaults _verificationDefaults = new();
     private readonly FakePasswordHasher _passwordHasher = new();
+    private readonly FakeEmailVerificationCodeGenerator _codeGenerator = new();
+    private readonly FakeEmailVerificationCodeHasher _codeHasher = new();
+    private readonly FakeEmailSender _emailSender = new();
     private readonly FixedTimeProvider _timeProvider = new(FixedNow);
 
     private readonly RoleId _roleId = RoleId.New();
@@ -46,8 +52,13 @@ public sealed class RegisterMobileUserTests
             _restrictionRepository,
             _writer,
             _defaults,
+            _verificationDefaults,
             _passwordHasher,
-            _timeProvider);
+            _codeGenerator,
+            _codeHasher,
+            _emailSender,
+            _timeProvider,
+            NullLogger<RegisterMobileUserCommandHandler>.Instance);
 
     private RestrictionId SeedRestriction(bool isActive = true)
     {
@@ -432,6 +443,149 @@ public sealed class RegisterMobileUserTests
 
         Assert.Equal(expected, Assert.IsType<UserRole>(_writer.CommittedUserRole).AssignedAtUtc);
         Assert.Equal(expected, Assert.Single(_writer.CommittedUserRestrictions).CreatedAtUtc);
+    }
+
+    // --- Verificación de correo inicial ---
+
+    [Fact]
+    public async Task Handle_CreatesTheInitialEmailVerification()
+    {
+        await CreateHandler().Handle(CommandWith(), CancellationToken.None);
+
+        UserEmailVerification verification =
+            Assert.IsType<UserEmailVerification>(_writer.CommittedEmailVerification);
+
+        User persisted = Assert.IsType<User>(_writer.CommittedUser);
+
+        Assert.Equal(persisted.Id, verification.UserId);
+        Assert.False(verification.IsUsed);
+        Assert.False(verification.IsRevoked);
+        Assert.Equal(0, verification.FailedAttempts);
+    }
+
+    [Fact]
+    public async Task Handle_UsesTimeProvider_ForTheVerificationDates()
+    {
+        await CreateHandler().Handle(CommandWith(), CancellationToken.None);
+
+        UserEmailVerification verification =
+            Assert.IsType<UserEmailVerification>(_writer.CommittedEmailVerification);
+
+        Assert.Equal(FixedNow.UtcDateTime, verification.CreatedAtUtc);
+        Assert.Equal(
+            FixedNow.UtcDateTime.AddMinutes(_verificationDefaults.ExpirationMinutes),
+            verification.ExpiresAtUtc);
+    }
+
+    [Fact]
+    public async Task Handle_GeneratesASixDigitCode()
+    {
+        await CreateHandler().Handle(CommandWith(), CancellationToken.None);
+
+        string code = Assert.Single(_codeGenerator.GeneratedCodes);
+
+        Assert.Equal(6, code.Length);
+        Assert.All(code, character => Assert.True(char.IsAsciiDigit(character)));
+    }
+
+    /// <summary>
+    /// La verificación solo puede llevar el hash: el código de seis dígitos jamás llega
+    /// a la persistencia.
+    /// </summary>
+    [Fact]
+    public async Task Handle_PersistsOnlyTheCodeHash_NeverThePlainCode()
+    {
+        await CreateHandler().Handle(CommandWith(), CancellationToken.None);
+
+        UserEmailVerification verification =
+            Assert.IsType<UserEmailVerification>(_writer.CommittedEmailVerification);
+
+        string code = Assert.Single(_codeGenerator.GeneratedCodes);
+
+        Assert.NotEqual(code, verification.CodeHash);
+        Assert.DoesNotContain(code, verification.CodeHash, StringComparison.Ordinal);
+        Assert.Equal(_codeHasher.ComputeHash(code), verification.CodeHash);
+        Assert.Equal(UserEmailVerification.CodeHashLength, verification.CodeHash.Length);
+    }
+
+    [Fact]
+    public async Task Handle_SendsTheCodeOnlyToTheUserEmail()
+    {
+        await CreateHandler().Handle(CommandWith(), CancellationToken.None);
+
+        FakeEmailSender.SentEmail sent = Assert.Single(_emailSender.SentEmails);
+
+        Assert.Equal("andres@email.com", sent.RecipientEmail);
+        Assert.Equal("Andres", sent.RecipientName);
+        Assert.Equal(Assert.Single(_codeGenerator.GeneratedCodes), sent.VerificationCode);
+        Assert.Equal(
+            Assert.IsType<UserEmailVerification>(_writer.CommittedEmailVerification).ExpiresAtUtc,
+            sent.ExpiresAtUtc);
+    }
+
+    /// <summary>
+    /// El envío nunca puede ocurrir con la transacción abierta: cuando el remitente se
+    /// invoca, la escritura ya debe estar confirmada.
+    /// </summary>
+    [Fact]
+    public async Task Handle_SendsTheEmailAfterTheDatabaseWriteIsCommitted()
+    {
+        bool committedWhenSending = false;
+        _emailSender.OnSend = () => committedWhenSending = _writer.Committed;
+
+        await CreateHandler().Handle(CommandWith(), CancellationToken.None);
+
+        Assert.True(committedWhenSending);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheVerificationCannotBePersisted_NothingIsCommitted()
+    {
+        RestrictionId restrictionId = SeedRestriction();
+        _writer.FailureToThrow = new InvalidOperationException("fallo al crear la verificación");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            CreateHandler().Handle(CommandWith(restrictionId.Value), CancellationToken.None)
+                .AsTask());
+
+        Assert.False(_writer.Committed);
+        Assert.Null(_writer.CommittedUser);
+        Assert.Null(_writer.CommittedUserRole);
+        Assert.Empty(_writer.CommittedUserRestrictions);
+        Assert.Null(_writer.CommittedEmailVerification);
+
+        // Tampoco se envía correo de un registro que no llegó a existir.
+        Assert.Empty(_emailSender.SentEmails);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheEmailFails_TheUserRemainsRegistered()
+    {
+        _emailSender.FailureToThrow = new InvalidOperationException("fallo del proveedor SMTP");
+
+        Result<MobileRegistrationResponse> result = await CreateHandler()
+            .Handle(CommandWith(), CancellationToken.None);
+
+        // El registro conserva su comportamiento: el fallo de envío no lo revierte.
+        Assert.True(result.IsSuccess);
+        Assert.True(_writer.Committed);
+        Assert.NotNull(_writer.CommittedUser);
+        Assert.NotNull(_writer.CommittedEmailVerification);
+        Assert.Equal(nameof(UserStatus.Unverified), result.Value.Status);
+    }
+
+    [Fact]
+    public async Task Handle_ResponseNeverContainsTheVerificationCode()
+    {
+        Result<MobileRegistrationResponse> result = await CreateHandler()
+            .Handle(CommandWith(), CancellationToken.None);
+
+        string serialized = JsonSerializer.Serialize(result.Value);
+        string code = Assert.Single(_codeGenerator.GeneratedCodes);
+
+        Assert.DoesNotContain(code, serialized, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            _codeHasher.ComputeHash(code), serialized, StringComparison.OrdinalIgnoreCase);
     }
 
     // --- Asignación del rol ---

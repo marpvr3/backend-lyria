@@ -29,8 +29,13 @@ public sealed class LoginTests
         new(_users, _passwordHasher, _accessTokens, _refreshTokens, _writer,
             _timeProvider, NullLogger<LoginCommandHandler>.Instance);
 
+    /// <summary>
+    /// Siembra un usuario en el estado indicado. El estado predeterminado es
+    /// <see cref="UserStatus.Active"/>: desde que existe la verificación de correo, es el
+    /// único con el que se puede iniciar sesión.
+    /// </summary>
     private User SeedUser(
-        UserStatus status = UserStatus.Unverified,
+        UserStatus status = UserStatus.Active,
         string password = Password,
         string email = Email)
     {
@@ -102,6 +107,7 @@ public sealed class LoginTests
     }
 
     [Theory]
+    [InlineData(UserStatus.Unverified)]
     [InlineData(UserStatus.Suspended)]
     [InlineData(UserStatus.Deleted)]
     public async Task Login_WithNonAuthenticableStatus_ReturnsInvalidCredentials(
@@ -116,7 +122,7 @@ public sealed class LoginTests
     }
 
     /// <summary>
-    /// Los cuatro motivos de rechazo deben producir un error idéntico: ni el código, ni
+    /// Los cinco motivos de rechazo deben producir un error idéntico: ni el código, ni
     /// el mensaje, ni el tipo pueden permitir deducir si la cuenta existe o su estado.
     /// </summary>
     [Fact]
@@ -128,6 +134,10 @@ public sealed class LoginTests
         wrongPasswordTest.SeedUser();
         Error wrongPassword = (await wrongPasswordTest.LoginAsync(password: "Otra999")).Error;
 
+        var unverifiedTest = new LoginTests();
+        unverifiedTest.SeedUser(UserStatus.Unverified);
+        Error unverified = (await unverifiedTest.LoginAsync()).Error;
+
         var suspendedTest = new LoginTests();
         suspendedTest.SeedUser(UserStatus.Suspended);
         Error suspended = (await suspendedTest.LoginAsync()).Error;
@@ -137,6 +147,7 @@ public sealed class LoginTests
         Error deleted = (await deletedTest.LoginAsync()).Error;
 
         Assert.Equal(unknownEmail, wrongPassword);
+        Assert.Equal(unknownEmail, unverified);
         Assert.Equal(unknownEmail, suspended);
         Assert.Equal(unknownEmail, deleted);
     }
@@ -166,17 +177,39 @@ public sealed class LoginTests
 
     // --- Estados permitidos ---
 
-    [Theory]
-    [InlineData(UserStatus.Unverified)]
-    [InlineData(UserStatus.Active)]
-    public async Task Login_WithAuthenticableStatus_Succeeds(UserStatus status)
+    [Fact]
+    public async Task Login_WithActiveStatus_Succeeds()
     {
-        SeedUser(status);
+        SeedUser(UserStatus.Active);
 
         Result<AuthenticationResponse> result = await LoginAsync();
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(status.ToString(), result.Value.User.Status);
+        Assert.Equal(nameof(UserStatus.Active), result.Value.User.Status);
+    }
+
+    /// <summary>
+    /// Una cuenta pendiente de verificar el correo no puede iniciar sesión, y el rechazo
+    /// es indistinguible de una contraseña incorrecta o de un correo inexistente: un
+    /// mensaje del tipo "debe verificar su correo" revelaría que la cuenta existe.
+    /// </summary>
+    [Fact]
+    public async Task Login_WithUnverifiedStatus_IsIndistinguishableFromOtherRejections()
+    {
+        SeedUser(UserStatus.Unverified);
+
+        Error unverified = (await LoginAsync()).Error;
+
+        var unknownEmailTest = new LoginTests();
+        Error unknownEmail = (await unknownEmailTest.LoginAsync("nadie@email.com")).Error;
+
+        var wrongPasswordTest = new LoginTests();
+        wrongPasswordTest.SeedUser();
+        Error wrongPassword = (await wrongPasswordTest.LoginAsync(password: "Otra999")).Error;
+
+        Assert.Equal(unknownEmail, unverified);
+        Assert.Equal(wrongPassword, unverified);
+        Assert.False(_writer.LoginCommitted);
     }
 
     [Fact]
@@ -186,7 +219,7 @@ public sealed class LoginTests
 
         await LoginAsync();
 
-        Assert.Equal(UserStatus.Unverified, user.Status);
+        Assert.Equal(UserStatus.Active, user.Status);
     }
 
     // --- Respuesta ---
